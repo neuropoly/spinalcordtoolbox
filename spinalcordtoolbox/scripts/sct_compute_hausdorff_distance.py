@@ -19,6 +19,7 @@ from spinalcordtoolbox.image import Image, add_suffix, empty_like, change_orient
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar
 from spinalcordtoolbox.utils.sys import init_sct, run_proc, printv, set_global_loglevel
 from spinalcordtoolbox.utils.fs import tmp_create, copy, extract_fname
+from spinalcordtoolbox.math import binarize
 
 # TODO: display results ==> not only max : with a violin plot of h1 and h2 distribution ? see dev/straightening --> seaborn.violinplot
 # TODO: add the option Hyberbolic Hausdorff's distance : see  choi and seidel paper
@@ -400,7 +401,9 @@ def resample_image(fname, suffix='_resampled.nii.gz', binary=False, npx=0.3, npy
             im_split.save(name_resample)
 
         if binary:
-            run_proc(['sct_maths', '-i', name_resample, '-bin', str(thr), '-o', name_resample])
+            img = Image(name_resample)
+            img.data = binarize(img.data, thr)
+            img.save()
 
         if orientation != 'RPI':
             name_resample = Image(name_resample) \
