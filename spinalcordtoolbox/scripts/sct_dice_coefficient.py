@@ -16,7 +16,8 @@ import os
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar
 from spinalcordtoolbox.utils.sys import init_sct, run_proc, printv, set_global_loglevel
 from spinalcordtoolbox.utils.fs import tmp_create, copy, extract_fname, rmtree
-from spinalcordtoolbox.image import add_suffix
+from spinalcordtoolbox.image import Image, add_suffix
+from spinalcordtoolbox.math import binarize
 
 
 def get_parser():
@@ -122,18 +123,26 @@ def main(argv=None):
     curdir = os.getcwd()
     os.chdir(tmp_dir)  # go to tmp directory
 
+    im_1 = Image(fname_input1)
+    im_2 = Image(fname_input2)
+
     if arguments.bin is not None:
         fname_input1_bin = add_suffix(fname_input1, '_bin')
-        run_proc(['sct_maths', '-i', fname_input1, '-bin', '0', '-o', fname_input1_bin])
+        im_1_bin = im_1.copy()
+        im_1_bin.data = binarize(im_1.data, 0)
+        im_1_bin.save(fname_input1_bin)
         fname_input1 = fname_input1_bin
+
         fname_input2_bin = add_suffix(fname_input2, '_bin')
-        run_proc(['sct_maths', '-i', fname_input2, '-bin', '0', '-o', fname_input2_bin])
+        im_2_bin = Image(fname_input2)
+        im_2_bin.data = binarize(im_2.data, 0)
+        im_2_bin.save(fname_input2_bin)
         fname_input2 = fname_input2_bin
 
     # copy header of im_1 to im_2
-    from spinalcordtoolbox.image import Image
     im_1 = Image(fname_input1)
     im_2 = Image(fname_input2)
+
     im_2.header = im_1.header
     im_2.save()
 
