@@ -26,6 +26,7 @@ from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, ActionCrea
 from spinalcordtoolbox.utils.sys import init_sct, run_proc, printv, __data_dir__, set_global_loglevel
 from spinalcordtoolbox.utils.fs import tmp_create, cache_signature, cache_valid, cache_save, \
     copy, extract_fname, rmtree
+from spinalcordtoolbox.math import threshold, laplacian
 
 from spinalcordtoolbox.scripts import sct_straighten_spinalcord
 
@@ -326,8 +327,13 @@ def main(argv=None):
              verbose=verbose,
              is_sct_binary=True,
              )
+
     # Threshold segmentation at 0.5
-    run_proc(['sct_maths', '-i', 'segmentation_straight.nii', '-thr', '0.5', '-o', 'segmentation_straight.nii'], verbose)
+    img = Image('segmentation_straight.nii')
+    data_thr = threshold(img.data, 0.5)
+    img.data = data_thr
+    img.save()
+
 
     # If disc label file is provided, label vertebrae using that file instead of automatically
     if fname_disc:
@@ -401,7 +407,18 @@ def main(argv=None):
         # apply laplacian filtering
         if laplacian:
             printv('\nApply Laplacian filter...', verbose)
-            run_proc(['sct_maths', '-i', 'data_straightr.nii', '-laplacian', '1', '-o', 'data_straightr.nii'], verbose)
+            img = Image("data_straightr.nii")
+
+            # apply std dev to each axis of the image
+            sigmas = [1 for i in range(len(img.data.shape))]
+
+            # adjust sigma based on voxel size
+            sigmas = [sigmas[i] / img.dim[i + 4] for i in range(3)]
+
+            # smooth data
+            img.data = laplacian(img.data, sigmas)
+            img.save()
+
 
         # detect vertebral levels on straight spinal cord
         init_disc[1] = init_disc[1] - 1
