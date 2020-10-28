@@ -21,6 +21,7 @@ from sklearn.decomposition import PCA
 from scipy.io import loadmat
 
 import spinalcordtoolbox.image as image
+from spinalcordtoolbox.math import laplacian
 from spinalcordtoolbox.registration.landmarks import register_landmarks
 from spinalcordtoolbox.utils import sct_progress_bar, copy_helper, run_proc, tmp_create
 
@@ -199,10 +200,19 @@ def register_step_ants_registration(src, dest, step, masking, ants_registration_
     # apply Laplacian filter
     if not step.laplacian == '0':
         logger.info(f"\nApply Laplacian filter")
-        run_proc(['sct_maths', '-i', src, '-laplacian', step.laplacian + ','
-                 + step.laplacian + ',0', '-o', image.add_suffix(src, '_laplacian')])
-        run_proc(['sct_maths', '-i', dest, '-laplacian', step.laplacian + ','
-                 + step.laplacian + ',0', '-o', image.add_suffix(dest, '_laplacian')])
+
+        sigmas = [step.laplacian, step.laplacian, 0]
+
+        src_img = image.Image(src)
+        src_out = src_img.copy()
+        src_out.data = laplacian(src_out.data, sigmas)
+        src_out.save(path=image.add_suffix(src, '_laplacian'))
+
+        dest_img = image.Image(dest)
+        dest_out = dest_img.copy()
+        dest_out.data = laplacian(dest_out.data, sigmas)
+        dest_out.save(path=image.add_suffix(dest, '_laplacian'))
+
         src = image.add_suffix(src, '_laplacian')
         dest = image.add_suffix(dest, '_laplacian')
 
