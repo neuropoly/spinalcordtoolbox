@@ -22,8 +22,8 @@ from spinalcordtoolbox.image import Image
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, display_viewer_syntax
 from spinalcordtoolbox.utils.sys import init_sct, printv, set_global_loglevel
 from spinalcordtoolbox.utils.fs import tmp_create, rmtree
+from spinalcordtoolbox.math import binarize
 
-from spinalcordtoolbox.scripts import sct_maths
 from spinalcordtoolbox.scripts import sct_apply_transfo
 
 
@@ -146,11 +146,12 @@ def merge_images(list_fname_src, fname_dest, list_fname_warp, param):
             '-x', param.interp,
             '-o', 'src_' + str(i_file) + '_template.nii.gz',
             '-v', str(param.verbose)])
+
         # create binary mask from input file by assigning one to all non-null voxels
-        sct_maths.main(argv=[
-            '-i', fname_src,
-            '-bin', str(param.almost_zero),
-            '-o', 'src_' + str(i_file) + 'native_bin.nii.gz'])
+        img = Image(fname_src)
+        out = img.copy()
+        out.data = binarize(out.data, param.almost_zero)
+        out.save(path=f"src_{i_file}native_bin.nii.gz")
 
         # apply transformation to binary mask to compute partial volume
         sct_apply_transfo.main(argv=[
