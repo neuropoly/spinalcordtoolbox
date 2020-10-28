@@ -25,7 +25,7 @@ from spinalcordtoolbox.image import Image, add_suffix, generate_output_file, con
 from spinalcordtoolbox.centerline.core import ParamCenterline, get_centerline
 from spinalcordtoolbox.reports.qc import generate_qc
 from spinalcordtoolbox.resampling import resample_file
-from spinalcordtoolbox.math import dilate
+from spinalcordtoolbox.math import dilate, binarize
 from spinalcordtoolbox.registration.register import *
 from spinalcordtoolbox.registration.landmarks import *
 from spinalcordtoolbox.types import Coordinate
@@ -33,8 +33,6 @@ from spinalcordtoolbox.utils import *
 from spinalcordtoolbox import __data_dir__
 import spinalcordtoolbox.image as msct_image
 import spinalcordtoolbox.labels as sct_labels
-
-from spinalcordtoolbox.scripts import sct_maths
 from spinalcordtoolbox.scripts import sct_apply_transfo
 from spinalcordtoolbox.scripts.sct_image import split_data
 
@@ -430,9 +428,10 @@ def main(argv=None):
     # binarize segmentation (in case it has values below 0 caused by manual editing)
     printv('\nBinarize segmentation', verbose)
     ftmp_seg_, ftmp_seg = ftmp_seg, add_suffix(ftmp_seg, "_bin")
-    sct_maths.main(['-i', ftmp_seg_,
-                    '-bin', '0.5',
-                    '-o', ftmp_seg])
+    img = Image(ftmp_seg_)
+    out = img.copy()
+    out.data = binarize(out.data, 0.5)
+    out.save(path=ftmp_seg)
 
     # Switch between modes: subject->template or template->subject
     if ref == 'template':
