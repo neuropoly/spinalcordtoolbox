@@ -219,18 +219,6 @@ class ExtractGLCM:
         # extract axial slices in self.dct_im_seg
         self.dct_im_seg['im'], self.dct_im_seg['seg'] = [im.data[:, :, z] for z in range(im.dim[2])], [seg.data[:, :, z] for z in range(im.dim[2])]
 
-    # def init_metric_im(self):
-    #     # open image and re-orient it to RPI if needed
-    #     im_tmp = Image(self.param.fname_im)
-    #     if self.orientation_im != self.orientation_extraction:
-    #         im_tmp = msct_image.change_orientation(im_tmp, self.orientation_extraction)
-
-    #     # create Image objects with zeros values for each output image needed
-    #     for m in self.metric_lst:
-    #         im_2save = msct_image.zeros_like(im_tmp, dtype=np.float64)
-    #         fname_out = add_suffix(''.join(extract_fname(self.param.fname_im)[1:]), '_' + m)
-    #         im_2save.save(fname_out)
-    #         self.fname_metric_lst[m] = fname_out
 
     def compute_texture(self):
 
