@@ -330,8 +330,7 @@ def main(argv=None):
 
     # Threshold segmentation at 0.5
     img = Image('segmentation_straight.nii')
-    data_thr = threshold(img.data, 0.5)
-    img.data = data_thr
+    img.data = threshold(img.data, 0.5)
     img.save()
 
 
