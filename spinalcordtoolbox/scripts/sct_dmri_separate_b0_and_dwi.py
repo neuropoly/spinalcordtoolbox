@@ -196,9 +196,9 @@ def main(argv=None):
         printv('\nAverage b=0...', verbose)
         img = Image(b0_name + ext)
         out = img.copy()
-        dim_idx = 3 # 3 dimensions + time
-        if dim_idx + 1 > len(np.shape(img.data)):
-            out.data = out.data[..., np.newaxis]
+        dim_idx = 3
+        if len(np.shape(img.data)) < dim_idx + 1:
+            raise ValueError("Expecting image with 4 dimensions!")
         out.data = np.mean(out.data, dim_idx)
         out.save(path=b0_mean_name + ext)
 
@@ -213,9 +213,9 @@ def main(argv=None):
         printv('\nAverage DWI...', verbose)
         img = Image(dwi_name + ext)
         out = img.copy()
-        dim_idx = 3 # 3 dimensions + time
-        if dim_idx + 1 > len(np.shape(img.data)):
-            out.data = out.data[..., np.newaxis]
+        dim_idx = 3
+        if len(np.shape(img.data)) < dim_idx + 1:
+            raise ValueError("Expecting image with 4 dimensions!")
         out.data = np.mean(out.data, dim_idx)
         out.save(path=dwi_mean_name + ext)
 
