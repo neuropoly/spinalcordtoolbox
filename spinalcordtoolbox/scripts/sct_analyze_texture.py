@@ -15,7 +15,7 @@ import itertools
 import numpy as np
 from skimage.feature import greycomatrix, greycoprops
 
-from spinalcordtoolbox.image import Image, add_suffix, zeros_like
+from spinalcordtoolbox.image import Image, add_suffix, zeros_like, concat_data
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, ActionCreateFolder
 from spinalcordtoolbox.utils.sys import init_sct, printv, sct_progress_bar, run_proc, set_global_loglevel
 from spinalcordtoolbox.utils.fs import tmp_create, extract_fname, copy, rmtree
@@ -200,10 +200,11 @@ class ExtractGLCM:
 
             # Average across angles and save it as wrk_folder/fnameIn_feature_distance_mean.extension
             fname_out = im_m + str(self.param_glcm.distance) + '_mean' + extension
-            run_proc('sct_image -i ' + ' '.join(im2mean_lst) + ' -concat t -o ' + fname_out)
 
+            dim_idx = 3 # img is [x, y, z, angle] so specify 4th dimension (angle)
+
+            img = concat_data(im2mean_lst, dim_idx).save(fname_out)
             img = Image(fname_out)
-            dim_idx = 3 # 3 dimensions + time
             img.data = np.mean(img.data, dim_idx)
             img.save()
 
