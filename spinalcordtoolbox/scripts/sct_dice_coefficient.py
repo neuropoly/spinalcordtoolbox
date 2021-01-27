@@ -130,19 +130,16 @@ def main(argv=None):
         fname_input1_bin = add_suffix(fname_input1, '_bin')
         im_1_bin = im_1.copy()
         im_1_bin.data = binarize(im_1.data, 0)
-        im_1_bin.save(fname_input1_bin)
-        fname_input1 = fname_input1_bin
+        im_1_bin.save(fname_input1_bin, mutable=True)
+        im_1 = im_1_bin
 
         fname_input2_bin = add_suffix(fname_input2, '_bin')
         im_2_bin = Image(fname_input2)
         im_2_bin.data = binarize(im_2.data, 0)
-        im_2_bin.save(fname_input2_bin)
-        fname_input2 = fname_input2_bin
+        im_2_bin.save(fname_input2_bin, mutable=True)
+        im_2 = im_2_bin
 
     # copy header of im_1 to im_2
-    im_1 = Image(fname_input1)
-    im_2 = Image(fname_input2)
-
     im_2.header = im_1.header
     im_2.save()
 
