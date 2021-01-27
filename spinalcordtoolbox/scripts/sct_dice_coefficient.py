@@ -127,17 +127,17 @@ def main(argv=None):
     im_2 = Image(fname_input2)
 
     if arguments.bin is not None:
+        im_1.data = binarize(im_1.data, 0)
         fname_input1_bin = add_suffix(fname_input1, '_bin')
-        im_1_bin = im_1.copy()
-        im_1_bin.data = binarize(im_1.data, 0)
-        im_1_bin.save(fname_input1_bin, mutable=True)
-        im_1 = im_1_bin
+        im_1.save(fname_input1_bin, mutable=True)
 
+        im_2.data = binarize(im_2.data, 0)
         fname_input2_bin = add_suffix(fname_input2, '_bin')
-        im_2_bin = im_2.copy()
-        im_2_bin.data = binarize(im_2.data, 0)
-        im_2_bin.save(fname_input2_bin, mutable=True)
-        im_2 = im_2_bin
+        im_2.save(fname_input2_bin, mutable=True)
+
+        # Use binarized images in subsequent steps
+        fname_input1 = fname_input1_bin
+        fname_input2 = fname_input2_bin
 
     # copy header of im_1 to im_2
     im_2.header = im_1.header
