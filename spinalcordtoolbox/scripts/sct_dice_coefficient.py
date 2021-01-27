@@ -134,7 +134,7 @@ def main(argv=None):
         im_1 = im_1_bin
 
         fname_input2_bin = add_suffix(fname_input2, '_bin')
-        im_2_bin = Image(fname_input2)
+        im_2_bin = im_2.copy()
         im_2_bin.data = binarize(im_2.data, 0)
         im_2_bin.save(fname_input2_bin, mutable=True)
         im_2 = im_2_bin
