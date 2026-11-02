@@ -688,26 +688,15 @@ def main(argv: Sequence[str]):
                     offset_text=False,
                     **common_args,
                 )
-        # FIXME: This special case is very similar to the `spine` case above, but without the discs labels.
-        #        Maybe there's a way we can simplify this?
         elif arguments.task == "brachial_plexus":
-            common_args = dict(
-                command='sct_deepseg',
+            qc2.sct_deepseg_brachial_plexus(
+                fname_input=input_filenames[0],
+                fname_seg=output_filenames[0],
                 argv=argv,
                 path_qc=os.path.abspath(arguments.qc),
                 dataset=arguments.qc_dataset,
                 subject=arguments.qc_subject,
                 contrast=arguments.qc_contrast,
-            )
-            path_custom_labels = os.path.join(
-                __sct_dir__, 'spinalcordtoolbox', 'reports', 'brachial_plexus_regions.json',
-            )
-            qc2.sct_label_vertebrae(
-                fname_input=input_filenames[0],
-                fname_seg=output_filenames[0],
-                path_custom_labels=path_custom_labels,
-                offset_text=False,
-                **common_args,
             )
         else:
             # If `arguments.qc_seg is None`, each entry will be treated as an
