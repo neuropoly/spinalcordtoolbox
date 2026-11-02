@@ -29,14 +29,25 @@ from spinalcordtoolbox.deepseg_.postprocessing import keep_largest_object, fill_
 import spinalcordtoolbox.deepseg.models as ds_models
 import spinalcordtoolbox.deepseg.monai as ds_monai
 import spinalcordtoolbox.deepseg.nnunet as ds_nnunet
+import spinalcordtoolbox.sc_crop as sc_crop
 
 from spinalcordtoolbox.utils.sys import LazyLoader, stylize
-
-import sc_crop
 
 nib = LazyLoader("nib", globals(), "nibabel")
 
 logger = logging.getLogger(__name__)
+
+
+def prediction_from_probability_map(prob_map):
+    """
+    Keep only the voxels where the foreground probability
+    beats the background probability, similar to nnunetv2.
+    """
+    if prob_map.shape[0] != 2:
+        raise ValueError(f"Expected 2-channel probability map with channels "
+                         f"in first axis, got {prob_map.shape}.")
+    background, foreground = prob_map[0], prob_map[1]
+    return np.where(foreground > background, foreground, 0)
 
 
 def segment_and_average_volumes(model_paths, input_filenames, options, use_gpu=False):
@@ -237,7 +248,7 @@ def average_nnunet_predictions(pred, probabilities=False):
         for prob_map in prob_maps:  # loop over folds
             # The shape of the prob_map is (num_classes, z, y, x), so we keep only the non-background class (1)
             # Similar to nnunet, the value of the soft max is the value of the probability map at class 1 if the value is greater than that of class 0
-            fold_pred = np.where(prob_map[1] > prob_map[0], prob_map[1], 0)
+            fold_pred = prediction_from_probability_map(prob_map)
             ensembled_pred += fold_pred
         # Divide by number of folds to get the average
         pred = ensembled_pred / len(prob_maps)
@@ -255,13 +266,13 @@ def average_nnunet_predictions(pred, probabilities=False):
 def _split_nnunet_output(
     img_out: Image,
     labels: Mapping[str, int | list[int]],
-    soft_ms_lesion: bool,
+    soft_seg: bool,
 ) -> tuple[list[str], list[Image]]:
     """Prepare output suffixes and images from an nnUNet prediction.
 
     :param img_out: The full, possibly multi-class prediction image.
     :param labels: Mapping of non-background label names to their class values.
-    :param soft_ms_lesion: Whether to preserve the soft MS lesion prediction (user-facing option).
+    :param soft_seg: Whether to preserve the soft prediction (user-facing option).
     :return: Output suffixes and corresponding images, in save order.
     """
     # if any of the following conditions are met, preserve the entire output as-is using the target suffix listed
@@ -282,9 +293,10 @@ def _split_nnunet_output(
         if set(labels).issubset(label_set):
             return [target], [img_out]
 
-    # Soft MS lesion predictions must only be split into per-class binary images if softseg is not requested by the user
-    if soft_ms_lesion:
-        return ["_msLesionSoft"], [img_out]
+    # in the case of a multiclass soft-segmentation model (e.g. lesion_ms), we don't want the per-label
+    # binarization done afterwards
+    if soft_seg:
+        return ["_softseg"], [img_out]
 
     # For all other cases, binarize by matching array values, including nested labels with multiple values
     targets, outputs = [], []
@@ -297,11 +309,11 @@ def _split_nnunet_output(
     return targets, outputs
 
 
-def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=False, soft_ms_lesion=False,
+def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=False, soft_seg=False,
                    crop=False, crop_pad=None, box_overrides=None, out_fname=None):
     """
     This script is used to run inference on a single subject using a nnUNetV2 model.
-    For soft segmentation of MS lesions, set `soft_ms_lesion=True`. Output segmentation will be thresholded at 1e-3.
+    For soft segmentation (of MS lesions, the spinal cord, etc.), set `soft_seg=True`.
     If `crop=True`, the spinal cord is detected and the image cropped before inference (sc-crop), then the
     prediction is restored to the full image space.
 
@@ -415,13 +427,20 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
         # The spacings also have to be reversed to match nnUNet's conventions.
         image_properties={'spacing': img_in.dim[6:3:-1]},
         # Save the probability maps if specified
-        save_or_return_probabilities=soft_ms_lesion,
+        save_or_return_probabilities=soft_seg,
         # If using a model ensemble, return the logits per fold so we can average them ourselves
         return_logits_per_fold=True if ensemble else False
     )
     # For the lesion_ms model, `pred` is a list of np.arrays, one per fold and needs averaging
     if ensemble:
-        pred = average_nnunet_predictions(pred, probabilities=soft_ms_lesion)
+        pred = average_nnunet_predictions(pred, probabilities=soft_seg)
+    elif soft_seg:
+        # `save_or_return_probabilities=True` without ensembling (i.e. a single, non-multi-fold model like
+        # the contrast-agnostic SC model) returns a `(segmentation, probabilities)` tuple. Keep the value only
+        # where the foreground probability beats the background one, matching the soft-value logic used by
+        # `average_nnunet_predictions` for per-fold lesion_ms predictions.
+        _, prob_map = pred
+        pred = prediction_from_probability_map(prob_map)
     # Lastly, we undo the transpose to return the image from [z,y,x] (SimpleITK) to [x,y,z] (nibabel)
     pred = pred.transpose([2, 1, 0])
     img_out = img_ref.copy()
@@ -440,7 +459,8 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
 
     # sc-crop: restore the prediction to the full image space.
     if crop:
-        seg_full = sc_crop.uncrop(nib.Nifti1Image(np.asanyarray(img_out.data).astype(np.uint8), img_out.affine), bbox)
+        seg_dtype = np.uint8 if not soft_seg else np.asanyarray(img_out.data).dtype
+        seg_full = sc_crop.uncrop(nib.Nifti1Image(np.asanyarray(img_out.data).astype(seg_dtype), img_out.affine), bbox)
         truncated = sc_crop.check_seg_truncation(seg_full, bbox)
         if truncated:
             suggestions = "  ".join(f"-box-{key} <value>" for key in truncated)
@@ -459,7 +479,7 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
         img_out.data = keep_largest_object(img_out.data, x_cOm=None, y_cOm=None)
 
     # Split the output segmentation into multiple file outputs depending on the type of output
-    targets, outputs = _split_nnunet_output(img_out, labels, soft_ms_lesion)
+    targets, outputs = _split_nnunet_output(img_out, labels, soft_seg)
     fnames_out = []
     for target, img_out in zip(targets, outputs):
         fname_out = add_suffix(fname_prediction, target)

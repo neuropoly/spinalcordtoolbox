@@ -652,7 +652,7 @@ fi
 
 # Download miniforge
 print info "Downloading Miniforge..."
-MINIFORGE_VERSION="24.11.2-1"  # keep in sync with the URLs below
+MINIFORGE_VERSION="26.7.2-1"  # keep in sync with the URLs below
 MINIFORGE_DEPOT_BASE_URL="https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}"
 case $OS in
 linux)
@@ -712,8 +712,8 @@ find "$SCT_DIR/$PYTHON_DIR" -type f -exec touch {} +
 # * Fix details: https://github.com/conda/conda/issues/7173#issuecomment-980496682
 echo "include-system-site-packages = false" > "$SCT_DIR/$PYTHON_DIR/envs/venv_sct/pyvenv.cfg"
 
-# Skip pip==21.2 to avoid dependency resolver issue (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3593)
-python/envs/venv_sct/bin/python -m pip install -U "pip!=21.2.*"
+# Avoid eMudhra / emSign certificates with >=26.2.2 (https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576/40)
+python/envs/venv_sct/bin/python -m pip install -U "pip>=26.2.2"
 
 ## Install the spinalcordtoolbox into the Conda venv
 print info "Installing Python dependencies..."

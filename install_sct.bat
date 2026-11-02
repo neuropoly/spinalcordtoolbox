@@ -192,7 +192,7 @@ pushd %SCT_DIR% || goto error
 rem Install portable miniforge instance. (Command source: https://github.com/conda/conda/issues/1977)
 echo:
 echo ### Downloading Miniforge installer...
-curl -o %TMP_DIR%\miniforge.exe -L https://github.com/conda-forge/miniforge/releases/download/24.11.2-1/Miniforge3-Windows-x86_64.exe
+curl -o %TMP_DIR%\miniforge.exe -L https://github.com/conda-forge/miniforge/releases/download/26.7.2-1/Miniforge3-Windows-x86_64.exe
 echo:
 echo ### Installing portable copy of Miniforge...
 start /wait "" %TMP_DIR%\miniforge.exe /InstallationType=JustMe /AddToPath=0 /RegisterPython=0 /NoRegistry=1 /S /D=%cd%\python
@@ -211,8 +211,8 @@ if exist requirements-freeze.txt (
 )
 echo:
 echo ### Installing SCT and its dependencies from %requirements_file%...
-rem Skip pip==21.2 to avoid dependency resolver issue (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3593)
-python\envs\venv_sct\python -m pip install -U "pip^!=21.2.*" || goto error
+rem Avoid eMudhra / emSign certificates with >=26.2.2 (https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576/40)
+python\envs\venv_sct\python -m pip install -U "pip>=26.2.2" || goto error
 python\envs\venv_sct\Scripts\pip install -r %requirements_file% || goto error
 python\envs\venv_sct\Scripts\pip install -e . --use-pep517 || goto error
 

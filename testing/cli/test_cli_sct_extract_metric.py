@@ -1,5 +1,6 @@
 # pytest unit tests for sct_extract_metric
 
+import csv
 import numpy as np
 
 import pytest
@@ -48,3 +49,51 @@ def test_sct_extract_metric_vertfile_doesnt_exists():
                                       '-vert', '1:12', '-perlevel', '1',
                                       '-method', 'wa', '-l', '51', '-o', fname_out])
         assert e.value.code == 2
+
+
+def test_sct_extract_metric_normalize_pam50(tmp_path):
+    """Verify that -normalize-PAM50 outputs per-slice metrics in PAM50 space with VertLevel populated."""
+    fname_out = str(tmp_path / 'quantif_mtr_pam50.csv')
+    sct_extract_metric.main(argv=[
+        '-i', sct_test_path('mt', 'mtr.nii.gz'),
+        '-f', sct_test_path('mt', 'label/atlas'),
+        '-method', 'wa', '-l', '51',
+        '-vertfile', sct_test_path('mt', 'label', 'template', 'PAM50_levels.nii.gz'),
+        '-perslice', '1', '-normalize-PAM50', '1',
+        '-o', fname_out
+    ])
+    with open(fname_out, 'r') as f:
+        rows = list(csv.DictReader(f))
+    assert len(rows) > 0
+    assert all(r['Label'] == 'white matter' for r in rows)
+    assert all(int(r['VertLevel']) in [4, 5] for r in rows)
+    assert all((800 < int(r['Slice (I->S)']) < 870) for r in rows)
+    assert all((30 < float(r['WA()']) < 36) for r in rows)
+
+
+def test_sct_extract_metric_normalize_pam50_missing_perslice(tmp_path):
+    """Verify that -normalize-PAM50 1 without -perslice 1 raises an error."""
+    with pytest.raises(SystemExit) as e:
+        sct_extract_metric.main(argv=[
+            '-i', sct_test_path('mt', 'mtr.nii.gz'),
+            '-f', sct_test_path('mt', 'label/atlas'),
+            '-method', 'wa', '-l', '51',
+            '-vertfile', sct_test_path('mt', 'label', 'template', 'PAM50_levels.nii.gz'),
+            '-normalize-PAM50', '1',
+            '-o', str(tmp_path / 'out.csv')
+        ])
+    assert e.value.code == 2
+
+
+def test_sct_extract_metric_normalize_pam50_missing_vertfile(tmp_path):
+    """Verify that -normalize-PAM50 1 with a missing vertfile raises an error."""
+    with pytest.raises(SystemExit) as e:
+        sct_extract_metric.main(argv=[
+            '-i', sct_test_path('mt', 'mtr.nii.gz'),
+            '-f', sct_test_path('mt', 'label/atlas'),
+            '-method', 'wa', '-l', '51',
+            '-vertfile', sct_test_path('mt', 'label', 'template', 'does_not_exist.nii.gz'),
+            '-perslice', '1', '-normalize-PAM50', '1',
+            '-o', str(tmp_path / 'out.csv')
+        ])
+    assert e.value.code == 2

@@ -23,8 +23,10 @@ permissions: {}
 
 jobs:
   containers:
-    name: Docker+Apptainer (Ubuntu Latest)
-    runs-on: ubuntu-latest
+    # NB: The eWaterCycle/setup-apptainer action is not yet compatible with Ubuntu 26.04
+    # See: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/5344
+    name: Docker+Apptainer (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: Extract SCT current dev version to Github env

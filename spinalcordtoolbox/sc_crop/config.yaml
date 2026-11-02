@@ -1,0 +1,8 @@
+si_res: 10.0            # SI resampling resolution (mm) — must match training
+inplane_res: 1.0             # In-plane resampling resolution (mm) — must match training
+channels: 3               # Input channels (3 = superior/current/inferior)
+norm_scope: 'slice_all'     # Normalisation scope — must match training: volume | slice_all | slice
+imgsz: 320             # YOLO inference imgsz — must match training; required for ONNX (no metadata)
+conf: 0.1             # Detection confidence threshold
+regularization: 'cls'           # cls | graphtrim | none
+cls_conf: 0.5             # Classification confidence threshold (used with regularization=cls)

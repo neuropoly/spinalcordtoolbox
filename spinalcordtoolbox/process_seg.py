@@ -233,7 +233,7 @@ def _properties_image(im, nz, px, py, pz, pr, min_z_index, max_z_index, property
         angle_hog = find_angle_hog(
             current_patch_im_scaled,
             centermass_src,
-            pr, pr,
+            px, py,
         )  # taken from registration.algorithms.register2d_centermassrot
 
         z_indices.append(iz)
