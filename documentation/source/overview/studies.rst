@@ -26,6 +26,7 @@ The following studies have used SCT:
 2026
 ----
 
+-  Wei *et al.* `Simultaneous brain–spinal fMRI reveals neural mechanisms of TENS-induced analgesia <https://doi.org/10.1016/j.jare.2026.10.036>`_, **J. Adv. Res.** 2026
 -  Dunay *et al.* `Optimized multi-echo gradient echo MRI of the lumbosacral spinal cord to investigate atrophy, lesions, and disability in relapsing-remitting multiple sclerosis <https://doi.org/10.1162/IMAG.a.1410>`_, **Imaging Neurosci.** 2026
 -  Jarola *et al.* `A deep learning framework for automated cervical spinal cord vertebral labeling and morphometric extraction from brain MRI with large-scale multicenter validation <https://doi.org/10.1038/s41746-026-03403-w>`_, **NPJ Digit. Med.** 2026
 -  Nguyen *et al.* `Age and sex differences in T1 relaxation times and volumetrics in segmented brain and upper cervical spine in healthy participants using MP2RAGE protocol at 3.0 T <https://doi.org/10.3174/ajnr.A9688>`_, **AJNR Am. J. Neuroradiol.** 2026
