@@ -326,7 +326,7 @@ def get_parser(subparser_to_return=None):
                 help="If set, the model will output a soft segmentation (i.e. float between 0 and 1) instead of a binary "
                      "segmentation."
             )
-        if task_name == 'lesion_ms':
+        if task_name in ('lesion_ms', 'brachial_plexus'):
             # Add possibility of segmenting on only 1 fold for quicker inference
             params.add_argument(
                 "-single-fold",
@@ -538,7 +538,7 @@ def main(argv: Sequence[str]):
             # Pass any "extra" kwargs defined only for specific models/tasks
             extra_network_kwargs = {
                 arg_name: getattr(arguments, arg_name)
-                # "single_fold" -> used only by lesion_ms
+                # "single_fold" -> used only by lesion_ms and brachial_plexus
                 # "test_time_aug" -> used only by nnunetv2 models
                 for arg_name in ["single_fold", "test_time_aug"]
                 if hasattr(arguments, arg_name)
