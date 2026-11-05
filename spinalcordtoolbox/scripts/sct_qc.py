@@ -7,6 +7,7 @@
 
 import json
 import os
+import re
 import sys
 from typing import Sequence
 import textwrap
@@ -152,22 +153,46 @@ def get_parser():
 
 def parse_label_type(json_file, verbose):
     """Parse `sct_deepseg spine` label type from its JSON sidecar file."""
+    # Exit early if JSON sidecar doesn't exist
     label_type = "step1"  # default label type
-    if os.path.exists(json_file):
-        printv(f"Attempting to parse label type from JSON sidecar file: {json_file}", verbose=verbose)
-        with open(json_file, 'r') as f:
-            json_data = json.load(f)
-        if 'GeneratedBy' in json_data and "Name" in json_data['GeneratedBy'] and "-label-vert" in json_data['GeneratedBy']['Name']:
-            if "-label-vert 1" in json_data['GeneratedBy']['Name']:
-                label_type = "step2"
-            elif "-label-vert 0" in json_data['GeneratedBy']['Name']:
-                label_type = "step1"
-            printv(f"Inferred label type: {label_type}", verbose=verbose)
-        else:
-            printv(f"Could not find 'GeneratedBy' -> 'Name' -> '-label-vert' usage in JSON sidecar file: {json_file}. "
-                   f"Defaulting to label type: {label_type}", verbose=verbose)
-    else:
+    if not os.path.exists(json_file):
         printv(f"Could not find JSON sidecar file: {json_file}. Defaulting to label type: {label_type}", verbose=verbose)
+        return label_type
+
+    # Load the JSON sidecar file
+    printv(f"Attempting to parse label type from JSON sidecar file: {json_file}", verbose=verbose)
+    with open(json_file, 'r') as f:
+        json_data = json.load(f)
+
+    # 'GeneratedBy' is a list of entries (BIDS), so check every entry's 'Name' for '-label-vert' usage
+    names = []
+    if (
+        isinstance(json_data, dict) and
+        isinstance(generated_by := json_data.get('GeneratedBy'), list)
+    ):
+        names = [
+            name
+            for entry in generated_by
+            if isinstance(entry, dict)
+            and isinstance(name := entry.get('Name'), str)
+            and "-label-vert" in name
+        ]
+
+    # Try to find evidence of steps type via the argument usage ("-label-vert 0" (step1) or "-label-vert 1" (step2))
+    steps = {
+        "step2" if match.group(1) == "1" else "step1"
+        for name in names
+        for match in re.finditer(r"-label-vert\s+([01])\b", name)
+    }
+    if len(steps) == 1:
+        label_type = steps.pop()
+        printv(f"Inferred label type: {label_type}", verbose=verbose)
+    elif len(steps) > 1:
+        printv(f"Conflicting '-label-vert' values in 'GeneratedBy' entries of JSON sidecar file: {json_file}. "
+               f"Defaulting to label type: {label_type}", verbose=verbose, type='warning')
+    else:
+        printv(f"Could not find 'GeneratedBy' -> 'Name' -> '-label-vert' usage in JSON sidecar file: {json_file}. "
+               f"Defaulting to label type: {label_type}", verbose=verbose, type='warning')
     return label_type
 
 
