@@ -446,13 +446,15 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
 
     # Pattern for an inline list of values, e.g. "(choices: item1, item2, item3) (default: item1)".
     # When such a line wraps, the wrapped lines are aligned with the first item, rather than with the label.
-    _LABEL = r"\(?\w+:\s"                       # "Word: ", with an optional opening bracket, e.g. "(choices: "
-    _ITEM = r"[^\s,()]+"                        # A single item: no spaces, commas, or brackets
-    _MORE_ITEMS = r"(?:,\s" + _ITEM + r"){2,}"  # At least 2 more items, each preceded by ", "
-    _CLOSE = r"\)?\.?"                          # An optional closing bracket, then an optional period
-    _SUFFIX = r"(?:\s\(.*\))?"                  # An optional trailing parenthetical, e.g. "(default: ...)"
     INLINE_LIST_PATTERN = re.compile(
-        r"^\s*(?P<label>" + _LABEL + ")" + _ITEM + _MORE_ITEMS + _CLOSE + _SUFFIX + "$"
+        r"""
+        ^\s*(?P<label>\(?\w+:\s)  # "Word: ", with an optional opening bracket, e.g. "(choices: "
+        [^\s,()]+                 # A single item: no spaces, commas, or brackets
+        (?:,\s[^\s,()]+){2,}      # At least 2 more items, each preceded by ", "
+        \)?\.?                    # An optional closing bracket, then an optional period
+        (?:\s\(.*\))?$            # An optional trailing parenthetical, e.g. "(default: ...)"
+        """,
+        re.VERBOSE,
     )
 
     def __init__(self, *args, **kw):
