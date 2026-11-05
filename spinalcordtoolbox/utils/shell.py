@@ -450,7 +450,7 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
         r"""
         ^\s*(?P<label>\(?\w+:\s)  # "Word: ", with an optional opening bracket, e.g. "(choices: "
         [^\s,()]+                 # A single item: no spaces, commas, or brackets
-        (?:,\s[^\s,()]+){2,}      # At least 2 more items, each preceded by ", "
+        (?:,\s[^\s,()]+)+         # At least 1 more item, each preceded by ", "
         \)?\.?                    # An optional closing bracket, then an optional period
         (?:\s\(.*\))?$            # An optional trailing parenthetical, e.g. "(default: ...)"
         """,
