@@ -17,7 +17,10 @@ h5py!=3.15.0
 # PyTorch's Linux distribution is very large due to its GPU support,
 # but we only need that for training models. Our users only need CPU.
 --extra-index-url https://download.pytorch.org/whl/cpu # append_to_freeze
-ivadomed
+# `kornia` is not used by SCT directly, but by `auglab` (via `totalspineseg`), which does `from kornia.core import Tensor`.
+# kornia 0.8.3 removed `kornia.core.Tensor` and is the first release requiring Python>=3.11, so this only breaks on 3.11+.
+# Remove this pin once `auglab` (https://github.com/neuropoly/AugLab) is compatible with kornia>=0.8.3.
+kornia<0.8.3
 matplotlib
 # `matplotlib-inline` is an optional package that comes with `jupyter` for use with the '%matplotlib inline' directive.
 # However, if the user runs `jupyter` from a separate environment and sets '%matplotlib inline', then SCT's
@@ -56,7 +59,9 @@ onnxruntime>=1.7.0,!=1.16.0,<1.22.0
 # onnx==[1.16.2,1.17.0,1.18.0] all cause errors for Python 3.9 + Windows (https://github.com/onnx/onnx/issues/6267#issuecomment-2877327002)
 # 1.17.0 can partially work as long as SCT doesn't import it, but this is flaky.
 onnx<1.16.2
-pandas
+# pandas 3 turns several pandas 2 deprecations into errors that SCT hasn't been migrated for yet, e.g. `float()` on a
+# single-element Series in `sct_analyze_lesion`. See: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4406
+pandas<3
 portalocker
 psutil
 # pyqt5=5.15.X causes https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3925, however
@@ -67,9 +72,6 @@ pyqt5>=5.15.0
 # an Ubuntu machine will result in a set of dependencies incompatible with Windows, and we don't want that!
 # See also: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4905#issuecomment-2902112975
 PyQt5-Qt5==5.15.2
-# pystrum==0.2 is incompatible with newer versions of numpy (installed via voxelmorph -> neurite -> pystrum)
-# See also: https://github.com/adalca/pystrum/issues/9
-pystrum>=0.3
 pytest
 pytest-cov
 requests
@@ -96,10 +98,6 @@ transforms3d
 urllib3
 pytest_console_scripts
 pyyaml
-# In July 2026, voxelmorph released 0.3 which contained some very drastic API changes. Given the lack of upstream
-# documentation updates + outdated example scripts, I don't think we can reasonably keep voxelmorph unpinned.
-# See: https://github.com/voxelmorph/voxelmorph/issues/663
-voxelmorph<0.3
 wquantiles
 # XlxsWriter is needed to write `.xlsx` files, since pandas removed support for the `xlwt` engine
 # Source: https://github.com/pandas-dev/pandas/pull/49296
@@ -109,3 +107,9 @@ xlsxwriter
 pillow>=10.0.0
 pyyaml>=6.0
 ultralytics>=8.0.0
+
+# NB: These dependencies belong to `ivadomed`, and were copied over after absorbing the inference code of the
+# `ivadomed` package into SCT (the rest of its dependencies were only used for training, or are already listed above)
+imageio
+loguru
+torchvision

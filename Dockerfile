@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.10-slim AS build
+FROM python:3.11-slim AS build
 
 ENV CONDA_PKGS_DIRS=/root/.conda/pkgs \
     MINIFORGE_CACHE_DIR=/root/.cache/miniforge \

@@ -4,6 +4,10 @@ include README*
 include CHANGES.md
 include abstract.png
 include spinalcordtoolbox/version.txt
+include spinalcordtoolbox/ivadomed/LICENSE.md
+include spinalcordtoolbox/ivadomed/version.txt
+include spinalcordtoolbox/ivadomed/config/config_default.json
+include spinalcordtoolbox/registration/vxm/LICENSE.md
 
 graft spinalcordtoolbox/reports/assets
 prune dev

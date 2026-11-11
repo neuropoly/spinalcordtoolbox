@@ -55,7 +55,7 @@ def test_importing_scripts_avoids_expensive_modules(script, sandbox_modules):
         'scipy.stats',
         'sklearn',
         'torch',
-        'voxelmorph',
+        'spinalcordtoolbox.registration.vxm',
     ]
 
     # Wipe `sys.modules` of expensive modules to force reimports

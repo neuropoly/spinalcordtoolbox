@@ -25,12 +25,8 @@ from spinalcordtoolbox.utils.sys import run_proc, sct_dir_local_path, sct_progre
 
 from spinalcordtoolbox.scripts import sct_image
 
-# import VoxelMorph and Neurite (used in VoxelMorph) with pytorch backend
-os.environ['VXM_BACKEND'] = 'pytorch'
-os.environ['NEURITE_BACKEND'] = 'pytorch'
-
 nib = LazyLoader("nib", globals(), "nibabel")
-vxm = LazyLoader("vxm", globals(), "voxelmorph")
+vxm = LazyLoader("vxm", globals(), "spinalcordtoolbox.registration.vxm")
 torch = LazyLoader("torch", globals(), "torch")
 nil_image = LazyLoader("nil_image", globals(), "nilearn.image")
 skl_decomposition = LazyLoader("skl_decomposition", globals(), "sklearn.decomposition")

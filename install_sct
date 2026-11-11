@@ -692,7 +692,7 @@ if [[ $OS == linux ]]; then
   #   - `libstdcxx-ng`: Ensure that packaged GLIBC version is up to date (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3927#issuecomment-1298616317)
   #   - `libffi`: Ensure that libffi isn't linked incorrectly (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3927#issuecomment-1573896770)
   #   - `xorg-libxinerama`: Ensure that PyQt5 has the correct dependencies on Ubuntu (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3925)
-  python/bin/conda create -y -p "$SCT_DIR/$PYTHON_DIR/envs/venv_sct" -c conda-forge python=3.10 libstdcxx-ng libffi xorg-libxinerama
+  python/bin/conda create -y -p "$SCT_DIR/$PYTHON_DIR/envs/venv_sct" -c conda-forge python=3.11 libstdcxx-ng libffi xorg-libxinerama
   # NB: We also need to copy the necessary dependencies to a separate subfolder that we add to LD_LIBRARY_PATH in compat/launcher.py
   #     We do this to avoid exposing the full `lib/` directory, which can cause conflicts with system libraries.
   #     This should copy 1 .so file and 2 symlinks, but the symlinks are relative, so copying them to a separate folder should be OK.
@@ -700,7 +700,7 @@ if [[ $OS == linux ]]; then
   mkdir "$SCT_DIR/$PYTHON_DIR/envs/venv_sct/sct_ld_library_path/"
   cp "$SCT_DIR/$PYTHON_DIR/envs/venv_sct/lib/libxcb-xinerama.so."* "$SCT_DIR/$PYTHON_DIR/envs/venv_sct/sct_ld_library_path/"
 else
-  python/bin/conda create -y -p "$SCT_DIR/$PYTHON_DIR/envs/venv_sct" -c conda-forge python=3.10
+  python/bin/conda create -y -p "$SCT_DIR/$PYTHON_DIR/envs/venv_sct" -c conda-forge python=3.11
 fi
 
 # Reapply the touch fix to avoid `pip` connection issues on WSL

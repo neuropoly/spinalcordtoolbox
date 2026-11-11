@@ -28,11 +28,6 @@ def main():
     if "ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS" not in os.environ:
         env["ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS"] = str(multiprocessing.cpu_count())
 
-    # Needed to allow `sct_check_dependencies` to import voxelmorph/neurite without
-    # failing due to a missing `tensorflow` dependency (since the backend defaults to TF)
-    env['VXM_BACKEND'] = 'pytorch'
-    env['NEURITE_BACKEND'] = 'pytorch'
-
     # Suppress a warning from `numexp`. This replicates the default behavior anyway, see:
     #     https://github.com/pydata/numexpr/blob/1e3241d9883eeabc08b15d2d5b0f28a2804381fc/numexpr/utils.py#L138
     env['NUMEXPR_MAX_THREADS'] = str(detect_number_of_cores())

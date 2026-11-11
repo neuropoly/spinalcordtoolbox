@@ -9,11 +9,12 @@ import logging
 import os
 import shutil
 import time
+from contextlib import contextmanager
 from pathlib import Path
 import glob
 import multiprocessing as mp
 
-from ivadomed import inference as imed_inference
+from spinalcordtoolbox.ivadomed import inference as imed_inference
 from totalspineseg.inference import inference as tss_inference
 import numpy as np
 import torch
@@ -465,6 +466,59 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
     return fnames_out, targets
 
 
+def _reset_tqdm_mp_lock():
+    """
+    Discard tqdm's cached multiprocessing lock so that the next progress bar creates a new one.
+
+    Since Python 3.11, passing a lock created in a 'fork' context (default on Linux) to a 'spawn' worker (used by
+    totalspineseg) will raise an error with the message:
+
+       "A SemLock created in a fork context is being shared with a process in a spawn context".
+
+    Importantly, tqdm creates one `multiprocessing.RLock` per process, caches it on its classes, and passes it to
+    every worker started by `tqdm.contrib.concurrent.process_map`. This means that if we ever create a 'fork' tqdm progress
+    bar and then later in the same process we do totalspineseg inference (e.g. running our full test suite), then we'll
+    run into the aforementioned exception. So, we need a way to reset the lock type so that we can recreate it later.
+    """
+    from tqdm import tqdm
+    from tqdm.std import TqdmDefaultWriteLock  # noqa: Not exposed via __all__, so we're accessing TQDM internals here
+    if 'mp_lock' in vars(TqdmDefaultWriteLock):
+        del TqdmDefaultWriteLock.mp_lock
+    # Iterate over `tqdm` and all of its subclasses to check for cached copies of the multiprocessing lock
+    classes = [tqdm]
+    while classes:
+        cls = classes.pop()
+        if '_lock' in vars(cls):
+            delattr(cls, '_lock')
+        classes.extend(cls.__subclasses__())
+
+
+@contextmanager
+def _spawn_start_method():
+    """
+    Temporarily use the 'spawn' multiprocessing start method (e.g. for totalspineseg).
+
+    This context manager fixes https://github.com/spinalcordtoolbox/spinalcordtoolbox/pull/4690#discussion_r1854731025.
+    tl;dr: totalspineseg runs each of its processing steps in a process pool. With 'fork' (the default on Linux),
+    these workers can deadlock once the parent process has started threads (e.g. after running PyTorch/nnUNet inference),
+    which shows up as `sct_deepseg` stalling indefinitely partway through totalspineseg.
+
+    Notes:
+        - This context manager replaces our old approach from that PR where we set the 'spawn' method globally
+          whenever we invoked TSS. This avoids leaking that change to any further steps within the Python process.
+        - The calls to `_reset_tqdm_mp_lock()` are needed to prevent re-using a 'fork' tqdm lock in a 'spawn' process
+        - FIXME: This would not be needed if totalspineseg ran its steps in-process when `max_workers=1`.
+    """
+    previous_method = mp.get_start_method(allow_none=True)  # None if the start method hasn't been fixed yet
+    mp.set_start_method("spawn", force=True)
+    _reset_tqdm_mp_lock()
+    try:
+        yield
+    finally:
+        mp.set_start_method(previous_method, force=True)  # `None` restores the platform default
+        _reset_tqdm_mp_lock()
+
+
 def segment_totalspineseg(path_img, tmpdir, predictor, device, label_vert=False):
     # for totalspineseg, the 'predictor' is just the model path
     path_model = predictor
@@ -489,23 +543,22 @@ def segment_totalspineseg(path_img, tmpdir, predictor, device, label_vert=False)
     # set multiprocessing method to 'spawn' to avoid deadlock issues
     # - 'spawn' is already default on Windows/macOS, but 'fork' is default on Linux
     # - 'spawn' is reliable though slower, but 'fork' causes intermittent stalling
-    mp.set_start_method("spawn", force=True)
-
-    tss_inference(
-        input_path=path_img_tmp,
-        output_path=tmpdir_nnunet,
-        data_path=path_model,
-        # totalspineseg requires explicitly specifying the release subdirectory
-        default_release=installed_releases[-1],  # use the most recent release
-        # totalspineseg expects the device type, not torch.device
-        device=device,
-        # Try to address stalling due to the use of concurrent.futures in totalspineseg
-        max_workers=1,
-        max_workers_nnunet=1,
-        # Optional argument to choose which models to run
-        step1_only=bool(not label_vert),
-        keep_only=['step1_levels', 'step1_output'] if not label_vert else ['step1_levels', 'step2_output'],
-    )
+    with _spawn_start_method():
+        tss_inference(
+            input_path=path_img_tmp,
+            output_path=tmpdir_nnunet,
+            data_path=path_model,
+            # totalspineseg requires explicitly specifying the release subdirectory
+            default_release=installed_releases[-1],  # use the most recent release
+            # totalspineseg expects the device type, not torch.device
+            device=device,
+            # Try to address stalling due to the use of concurrent.futures in totalspineseg
+            max_workers=1,
+            max_workers_nnunet=1,
+            # Optional argument to choose which models to run
+            step1_only=bool(not label_vert),
+            keep_only=['step1_levels', 'step1_output'] if not label_vert else ['step1_levels', 'step2_output'],
+        )
 
     name_remapping = {
         "step1_levels": "totalspineseg_discs",

@@ -433,3 +433,35 @@ def test_deepseg_soft_seg_produces_expected_output(tmp_path, tmp_path_qc, task):
     im_out = Image(fname_out)
     # Check that the softseg output is a float image (not integer)
     assert np.issubdtype(im_out.data.dtype, np.floating)
+
+
+@pytest.mark.parametrize('task, fnames_in, extra_args, suffixes', [
+    ('sc_mouse_t1', [sct_test_path('t1', 't1w.nii.gz')], [], [""]),
+    ('gm_mouse_t1', [sct_test_path('t1', 't1w.nii.gz')], [], [""]),
+    ('tumor_t2', [sct_test_path('t2', 't2.nii.gz')], [], [""]),
+    ('tumor_edema_cavity_t1_t2', [sct_test_path('t2', 't2.nii.gz'), sct_test_path('t1', 't1w.nii.gz')],
+     ['-c', 't2', 't1'], ["_seg-tumor", "_seg-edema", "_seg-cavity", "_seg-whole-tumor"]),
+    ('gm_wm_exvivo_t2', [sct_test_path('t2', 't2.nii.gz')], [], ["_gmseg", "_wmseg"]),
+    ('gm_sc_7t_t2star', [sct_test_path('t2s', 't2s.nii.gz')], [], ["_7t_multiclass_gm", "_7t_multiclass_sc"]),
+    ('sc_lumbar_t2', [sct_test_path('t2', 't2.nii.gz')], [], [""]),
+])
+@pytest.mark.usefixtures(cleanup_model_dirs.__name__)
+def test_segment_nifti_ivadomed_models(task, fnames_in, extra_args, suffixes, tmp_path):
+    """
+    Check that each task whose models run through ivadomed's inference code produces its expected outputs.
+
+    These models segment data that isn't part of sct_testing_data (mouse, ex vivo, tumor, 7T, lumbar), so the outputs
+    aren't compared to a ground truth. Instead, this checks that ivadomed inference runs end to end (config loading,
+    transforms, ONNX and pickled `.pt` models, postprocessing), and that each output is in the space of the input.
+    """
+    # Ignore warnings from ivadomed model source code changing
+    warnings.filterwarnings("ignore", category=SourceChangeWarning)
+    fname_out = str(tmp_path / 'out.nii.gz')
+    sct_deepseg.main([task, '-i', *fnames_in, '-o', fname_out] + extra_args)
+    # The `-o` argument takes a single filename, even though one (or more!) files might be output.
+    # If multiple output files will be produced, `sct_deepseg` will take this singular `-o` and add suffixes to it.
+    im_in = Image(fnames_in[0])
+    for suffix in suffixes:
+        fname_seg = add_suffix(fname_out, suffix)
+        assert os.path.isfile(fname_seg)
+        assert Image(fname_seg).data.shape == im_in.data.shape

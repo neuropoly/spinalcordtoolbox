@@ -9,7 +9,7 @@ build:
   os: "ubuntu-22.04"
   tools:
       # This python version needs to be compatible with SCT, see setup.py
-      python: "3.10"
+      python: "3.11"
   jobs:
       # Override to exclude `-j auto` to fix https://github.com/wpilibsuite/sphinxext-remoteliteralinclude/issues/21#issuecomment-4156999988
       build:
