@@ -254,30 +254,8 @@ jobs:
         run: |
           ./.ci.sh -t
 
-  macos-14:
-    name: macOS 14.0 (Sonoma)
-    runs-on: macos-14
-    steps:
-      - name: Dependencies
-        run: |
-          # github runners come with dev-tools pre-installed
-      - uses: actions/checkout@v6
-      - name: Install SCT
-        run: |
-          ./.ci.sh -i
-      - name: Check dependencies
-        run: |
-          ./.ci.sh -c
-      - name: Run pytest test suite
-        run: |
-          ./.ci.sh -t
-
   macos-15:
     name: macOS 15.0 (Sequoia)
-    # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
-    #if: ${{ env.NIGHTLY }}
-    # in the meantime, copy-paste this:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: macos-15
     steps:
       - name: Dependencies
