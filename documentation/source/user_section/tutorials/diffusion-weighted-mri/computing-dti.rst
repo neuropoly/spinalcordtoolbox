@@ -1,7 +1,7 @@
 Computing DTI for motion corrected dMRI data
 ############################################
 
-Here, we compute the diffusion tensor metric images. SCT relies on the excellent ``dipy`` library for computing dMRI metrics `[Garyfallidis et al., Front Neuroinform 2014] <https://pubmed.ncbi.nlm.nih.gov/24600385/>`_.
+Here, we compute the diffusion tensor metric images. SCT relies on the excellent ``dipy`` library for computing dMRI metrics `[Garyfallidis et al., Front Neuroinform 2014] <https://doi.org/10.3389/fninf.2014.00008>`_.
 
 .. code::
 
@@ -14,7 +14,7 @@ Here, we compute the diffusion tensor metric images. SCT relies on the excellent
 
 .. note::
 
-   You can also supply the ``-method restore`` option to estimate the tensors using **"RESTORE: robust estimation of tensors by outlier rejection"** `[Chang, Magn Reson Med 2005] <https://pubmed.ncbi.nlm.nih.gov/15844157/>`_.
+   You can also supply the ``-method restore`` option to estimate the tensors using **"RESTORE: robust estimation of tensors by outlier rejection"** `[Chang, Magn Reson Med 2005] <https://doi.org/10.1002/mrm.20426>`_.
 
 :Output files/folders:
    - ``dti_FA.nii.gz`` : Fractional anisotropy (FA) diffusion tensor image.

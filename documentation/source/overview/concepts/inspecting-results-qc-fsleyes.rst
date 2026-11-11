@@ -75,7 +75,7 @@ If you have the `FSLeyes <https://fsl.fmrib.ox.ac.uk/fsl/docs/#/utilities/fsleye
    Done! To view results, type:
    fsleyes t2/t2.nii.gz -cm greyscale t2/t2_seg.nii.gz -cm red -a 100.0 &
 
-Running this command will display a viewer that you can interact with. For more information about how to use FSLeyes, visit the `FSLeyes documentation <https://open.win.ox.ac.uk/pages/fsl/fsleyes/fsleyes/userdoc/>`_.
+Running this command will display a viewer that you can interact with. For more information about how to use FSLeyes, visit the `FSLeyes documentation <https://pages.fmrib.ox.ac.uk/fsl/fsleyes/fsleyes/userdoc/>`_.
 
 .. image:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/quality-control/fsleyes.png
   :align: center

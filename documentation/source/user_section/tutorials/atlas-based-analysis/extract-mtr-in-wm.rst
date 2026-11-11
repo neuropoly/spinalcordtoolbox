@@ -18,7 +18,7 @@ Now that the atlas has been warped to the MT space, it can be used to extract MT
    :file: mtr_in_wm.csv
    :header-rows: 1
 
-The label volume fraction is indicated as “``Size [vox]``”, which gives you a sense of the reliability of the measure. In this example, for each slice, the metric was computed based on 50-70 voxels. As demonstrated in `[De Leener et al., Neuroimage 2017; Appendix] <https://pubmed.ncbi.nlm.nih.gov/27720818/>`_, having at least 30 voxels results in an error smaller than 2%, while having at least 240 voxels results in an error smaller than 1% (assuming an SNR of 10).
+The label volume fraction is indicated as “``Size [vox]``”, which gives you a sense of the reliability of the measure. In this example, for each slice, the metric was computed based on 50-70 voxels. As demonstrated in `[De Leener et al., Neuroimage 2017; Appendix] <https://doi.org/10.1016/j.neuroimage.2016.10.009>`_, having at least 30 voxels results in an error smaller than 2%, while having at least 240 voxels results in an error smaller than 1% (assuming an SNR of 10).
 
 .. warning::
 

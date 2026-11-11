@@ -6,8 +6,8 @@ The :ref:`sct_deepseg` script also provides access to specialized models that fo
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/spinalcord-segmentation/sct_deepseg_models.png
    :align: center
 
-   Sample models. (**Tumor segmentation**: `Lemay et al. NeuroImage Clinical (2021) <https://pubmed.ncbi.nlm.nih.gov/34352654/>`__,
-   **WM/GM cord segmentation at 7T**: `Laines Medina et al. arXiv (2021) <https://arxiv.org/pdf/2110.06516.pdf>`__,
+   Sample models. (**Tumor segmentation**: `Lemay et al. NeuroImage Clinical (2021) <https://doi.org/10.1016/j.nicl.2021.102766>`__,
+   **WM/GM cord segmentation at 7T**: `Laines Medina et al. arXiv (2021) <https://doi.org/10.48550/arXiv.2110.06516>`__,
    **MP2RAGE SC and lesion segmentation**: `Cohen-Adad et al. Zenodo release (2023) <https://doi.org/10.5281/zenodo.8376754>`__)
 
 You can learn more about all of the available models by:

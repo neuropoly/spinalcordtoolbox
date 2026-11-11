@@ -84,7 +84,7 @@ def compute_mtsat(nii_mt, nii_pd, nii_t1,
         None  # it would be possible in the future to input T1 map from elsewhere (e.g. MP2RAGE). Note: this T1map
     # needs to be in s unit.
     b1correctionfactor = \
-        0.4  # empirically defined in https://www.frontiersin.org/articles/10.3389/fnins.2013.00095/full#h3
+        0.4  # empirically defined in https://doi.org/10.3389/fnins.2013.00095
     # R1 threshold, below which values will be clipped.
     r1_threshold = 0.01  # R1=0.01 s^-1 corresponds to T1=100s which is a reasonable threshold
     # Similarly, we also set a threshold for MTsat values

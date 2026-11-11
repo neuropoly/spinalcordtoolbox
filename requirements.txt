@@ -42,8 +42,6 @@ nilearn
 # - Notes for `nnunetv2-neuropoly` (our fork):
 # 2.6+ is now compatible with older versions of torch (>=2.1.2), so we can use the latest version.
 nnunetv2-neuropoly
-# sc-crop: SC detection+cropping for models with "cropped_image": True in MODELS (e.g. contrast-agnostic spinalcord).
-sc-crop>=0.12.1
 # SCT is compatible, however the upgrade to numpy==2.0.0 broke *many* upstream packages. Let's try again later. See https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4535
 numpy<2
 # This is a sub-package of `numpy` whose update broke compatibility with older versions of `numpy`. 
@@ -106,3 +104,8 @@ wquantiles
 # XlxsWriter is needed to write `.xlsx` files, since pandas removed support for the `xlwt` engine
 # Source: https://github.com/pandas-dev/pandas/pull/49296
 xlsxwriter
+
+# NB: These dependencies belong to `sc_crop`, and were copied over after absorbing the `sc_crop` package into SCT
+pillow>=10.0.0
+pyyaml>=6.0
+ultralytics>=8.0.0

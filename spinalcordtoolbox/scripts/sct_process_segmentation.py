@@ -155,7 +155,9 @@ def get_parser(ascor=False):
         metavar=Metavar.str,
         type=parse_num_list,
         default='',
-        help="Slice range to compute the metrics across. Example: `5:23`"
+        help="Slice range to compute the metrics across. Example: `5:23`. "
+             "Note: When using `-normalize-PAM50`, this argument refers to slices in the PAM50 template space, "
+             "since metrics are interpolated into PAM50 space before being aggregated."
     )
     optional.add_argument(
         '-perslice',

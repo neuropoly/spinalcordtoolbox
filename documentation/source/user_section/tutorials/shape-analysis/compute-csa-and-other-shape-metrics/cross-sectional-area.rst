@@ -84,7 +84,7 @@ Finally, to compute CSA for individual slices, set the ``-perslice`` argument to
 CSA (PMJ-based)
 ===============
 
-Although using vertebral levels as a reference to :ref:`compute CSA <csa-perlevel>` gives an approximation of the spinal levels, a drawback of that method is that it doesn’t consider neck flexion and extension `(Cadotte et al., 2015) <https://pubmed.ncbi.nlm.nih.gov/25523587/>`__.
+Although using vertebral levels as a reference to :ref:`compute CSA <csa-perlevel>` gives an approximation of the spinal levels, a drawback of that method is that it doesn’t consider neck flexion and extension `(Cadotte et al., 2015) <https://doi.org/10.3174/ajnr.a4192>`__.
 
 To overcome this limitation, the CSA can instead be computed as a function of the distance to a neuroanatomical reference point. Here, we use the pontomedullary junction (PMJ) as a reference for computing CSA, since the distance from the PMJ along the spinal cord will vary depending on the position of the neck.
 

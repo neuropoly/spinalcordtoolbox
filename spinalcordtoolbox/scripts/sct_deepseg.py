@@ -314,14 +314,15 @@ def get_parser(subparser_to_return=None):
                      "More details on TotalSpineSeg's two models can be found here: https://github.com/neuropoly/totalspineseg/?tab=readme-ov-file#model-description",
                 choices=(0, 1),
                 default=0)
-        if task_name == 'lesion_ms':
-            # Add possibility of having soft segmentation for the lesion_ms task
+        if task_name in ('lesion_ms', 'spinalcord'):
+            # Add possibility of having soft segmentation output
             params.add_argument(
-                "-soft-ms-lesion",
+                "-soft-seg",
                 action="store_true",
-                help="If set, the model will output a soft segmentation (i.e. probability map) instead of a binary "
+                help="If set, the model will output a soft segmentation (i.e. float between 0 and 1) instead of a binary "
                      "segmentation."
             )
+        if task_name == 'lesion_ms':
             # Add possibility of segmenting on only 1 fold for quicker inference
             params.add_argument(
                 "-single-fold",
@@ -526,8 +527,8 @@ def main(argv: Sequence[str]):
             extra_inference_kwargs = {
                 arg_name: getattr(arguments, arg_name)
                 # "label_vert" -> used only by spine
-                # "soft_ms_lesion" -> used only by lesion_ms
-                for arg_name in ["label_vert", "soft_ms_lesion"]
+                # "soft_seg" -> used only by lesion_ms and spinalcord
+                for arg_name in ["label_vert", "soft_seg"]
                 if hasattr(arguments, arg_name)
             }
             # The MS lesion model is multifold, which requires turning on the "ensemble averaging" behavior

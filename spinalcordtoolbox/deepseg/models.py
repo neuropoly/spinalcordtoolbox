@@ -332,7 +332,7 @@ TASKS = {
                       year-2021},
                       issn-2213-1582},
                       doi-https://doi.org/10.1016/j.nicl.2021.102766},
-                      url-https://www.sciencedirect.com/science/article/pii/S2213158221002102},
+                      url-https://doi.org/10.1016/j.nicl.2021.102766},
                       author-Andreanne Lemay and Charley Gros and Zhizheng Zhuo and Jie Zhang and Yunyun Duan and Julien Cohen-Adad and Yaou Liu},
                       keywords-Deep learning, Automatic segmentation, Spinal cord tumor, MRI, Multiclass, CNN}
              }
@@ -464,7 +464,7 @@ TASKS = {
                    eprint={2509.16255},
                    archivePrefix={arXiv},
                    primaryClass={q-bio.TO},
-                   url={https://arxiv.org/abs/2509.16255},
+                   url={https://doi.org/10.48550/arXiv.2509.16255},
              }
              ```"""),  # noqa E501 (line too long)
          },
@@ -513,9 +513,9 @@ TASKS = {
                       year{2025},
                       doi{10.1101/2025.01.07.631402},
                       publisher{Cold Spring Harbor Laboratory},
-                      abstract{Functional magnetic resonance imaging (fMRI) of the spinal cord is relevant for studying sensation, movement, and autonomic function. Preprocessing of spinal cord fMRI data involves segmentation of the spinal cord on gradient-echo echo planar imaging (EPI) images. Current automated segmentation methods do not work well on these data, due to the low spatial resolution, susceptibility artifacts causing distortions and signal drop-out, ghosting, and motion-related artifacts. Consequently, this segmentation task demands a considerable amount of manual effort which takes time and is prone to user bias. In this work, we (i) gathered a multi-center dataset of spinal cord gradient-echo EPI with ground-truth segmentations and shared it on OpenNeuro https://openneuro.org/datasets/ds005143/versions/1.3.0, and (ii) developed a deep learning-based model, EPISeg, for the automatic segmentation of the spinal cord on gradient-echo EPI data. We observe a significant improvement in terms of segmentation quality compared to other available spinal cord segmentation models. Our model is resilient to different acquisition protocols as well as commonly observed artifacts in fMRI data. The training code is available at https://github.com/sct-pipeline/fmri-segmentation/, and the model has been integrated into the Spinal Cord Toolbox as a command-line tool.Competing Interest StatementSince January 2024, Dr. Barry has been employed by the National Institute of Biomedical Imaging and Bioengineering at the National Institutes of Health. This work was co-authored by Robert Barry in his personal capacity. The opinions expressed in this study are his own and do not necessarily reflect the views of the National Institutes of Health, the Department of Health and Human Services, or the United States government. The other authors declared no potential conflicts of interest with respect to the research, authorship, and/or publication of this article.},
-                      URL{https://www.biorxiv.org/content/early/2025/01/27/2025.01.07.631402},
-                      eprint{https://www.biorxiv.org/content/early/2025/01/27/2025.01.07.631402.full.pdf},
+                      abstract{Functional magnetic resonance imaging (fMRI) of the spinal cord is relevant for studying sensation, movement, and autonomic function. Preprocessing of spinal cord fMRI data involves segmentation of the spinal cord on gradient-echo echo planar imaging (EPI) images. Current automated segmentation methods do not work well on these data, due to the low spatial resolution, susceptibility artifacts causing distortions and signal drop-out, ghosting, and motion-related artifacts. Consequently, this segmentation task demands a considerable amount of manual effort which takes time and is prone to user bias. In this work, we (i) gathered a multi-center dataset of spinal cord gradient-echo EPI with ground-truth segmentations and shared it on OpenNeuro (https://doi.org/10.18112/openneuro.ds005143.v1.3.0), and (ii) developed a deep learning-based model, EPISeg, for the automatic segmentation of the spinal cord on gradient-echo EPI data. We observe a significant improvement in terms of segmentation quality compared to other available spinal cord segmentation models. Our model is resilient to different acquisition protocols as well as commonly observed artifacts in fMRI data. The training code is available at https://github.com/sct-pipeline/fmri-segmentation/, and the model has been integrated into the Spinal Cord Toolbox as a command-line tool.Competing Interest StatementSince January 2024, Dr. Barry has been employed by the National Institute of Biomedical Imaging and Bioengineering at the National Institutes of Health. This work was co-authored by Robert Barry in his personal capacity. The opinions expressed in this study are his own and do not necessarily reflect the views of the National Institutes of Health, the Department of Health and Human Services, or the United States government. The other authors declared no potential conflicts of interest with respect to the research, authorship, and/or publication of this article.},
+                      URL{https://doi.org/10.1101/2025.01.07.631402},
+                      eprint{https://doi.org/10.1101/2025.01.07.631402},
                       journal{bioRxiv}
              }
              ```"""),  # noqa E501 (line too long)

@@ -212,7 +212,7 @@ def get_compressed_slice(img, df_metrics, mode):
         # This metric is computed from either the spinal cord or spinal canal segmentation (`arguments.i`).
         df_filtered = df_metrics[df_metrics['Slice (I->S)'].isin(slices_compressed)]
         # NOTE: we use 'MEAN(diameter_AP)' for all metrics here as this definition was used in the original publication:
-        #  https://pubmed.ncbi.nlm.nih.gov/10101829/
+        #  https://doi.org/10.1097/00007632-199903150-00023
         min_idx = df_filtered['MEAN(diameter_AP)'].idxmin()
         slice_num = df_filtered.loc[min_idx, 'Slice (I->S)']  # this might not be necessary as the index is already the slice
         return [slice_num]

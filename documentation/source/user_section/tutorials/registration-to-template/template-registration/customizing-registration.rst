@@ -34,7 +34,7 @@ This parameter determines the type of nonrigid deformation to apply to the spina
 :``algo=translation``: Axial (X-Y) translation.
 :``algo=rigid``: Axial (X-Y) translation + rotation about the Z axis.
 :``algo=affine``: Axial (X-Y) translation + rotation about the Z axis + axial (X-Y) scaling.
-:``algo=syn``: Symmetric image normalization (`SyN <https://pubmed.ncbi.nlm.nih.gov/17659998/>`_) provided by `ANTs <https://stnava.github.io/ANTs/>`_.
+:``algo=syn``: Symmetric image normalization (`SyN <https://doi.org/10.1016/j.media.2007.06.004>`_) provided by `ANTs <https://stnava.github.io/ANTs/>`_.
 :``algo=b-splinesyn``: B-Spline regularized form of SyN provided by `ANTs <https://stnava.github.io/ANTs/>`_.
 :``algo=slicereg``: Slice-by-slice axial (X-Y) translation, regularized along the Z axis. This can be used as both an initial alignment of a segmented cord centerline, or to align the centers of two images that are already close.
 :``algo=centermassrot``: An alignment of the center of mass of the segmented cord with the center of mass of the template. Similar to ``algo=slicereg``, but also includes rotation, to account for a turned cord due to e.g. compression on one side of the cord.

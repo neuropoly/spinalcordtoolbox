@@ -6,9 +6,9 @@ Now that we have a mask highlighting the spinal cord, we can apply motion correc
 The motion correction algorithm
 -------------------------------
 
-SCT features a complex motion correction algorithm, which is inspired by `[Xu et al., Neuroimage 2013] <https://pubmed.ncbi.nlm.nih.gov/23178538/>`__. The key aspects of this algorithm are as follows:
+SCT features a complex motion correction algorithm, which is inspired by `[Xu et al., Neuroimage 2013] <https://doi.org/10.1016/j.neuroimage.2012.11.014>`__. The key aspects of this algorithm are as follows:
 
-* **SliceReg:** Slice-wise registration regularized along the Z direction (based on the function antsSliceRegularizedRegistration from ANTs, and described in `[De Leener et al., Neuroimage 2017] <https://pubmed.ncbi.nlm.nih.gov/27720818/>`__).
+* **SliceReg:** Slice-wise registration regularized along the Z direction (based on the function antsSliceRegularizedRegistration from ANTs, and described in `[De Leener et al., Neuroimage 2017] <https://doi.org/10.1016/j.neuroimage.2016.10.009>`__).
 * **Grouping:** The algorithm performs group-wise registration between groups of successive dMRI volumes. If your data has a very low signal-to-noise ratio (SNR), you can use the flag ``-g`` to increase the number of successive images that are averaged into a group in order to have sufficient SNR to estimate a reliable transformation.
 * **Iterative average:** After registering a new group to the target image (which is usually the first DWI group), the target is averaged with the newly registered group in order to increase the SNR of the target image.
 * **Outlier detection:** If a detected transformation is too large, it is ignored and the previous transformation is used instead.

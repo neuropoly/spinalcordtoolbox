@@ -95,10 +95,10 @@ former are available (e.g., via nerve rootlets segmentation).
 
 The spinal levels are estimated from the relative length of each spinal level with respect to the length of the 
 full spinal cord (expressed as a percentage), found in Table 3 of the article by 
-`Frostell et al. (2016) <https://www.frontiersin.org/articles/10.3389/fneur.2016.00238/full>`_.
+`Frostell et al. (2016) <https://doi.org/10.3389/fneur.2016.00238>`_.
 The figure below (extracted from Frostell et al.) shows the spatial correspondance between the spinal vs. vertebral levels.
 
-.. figure:: https://www.frontiersin.org/files/Articles/230582/fneur-07-00238-HTML/image_m/fneur-07-00238-g001.jpg
+.. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/d39d9e5775a178a125c9479df43ee3f34fb9bdef/pam50/fneur-07-00238-g001.jpg
     :figwidth: 100%
     :align: right
 
@@ -109,6 +109,6 @@ The figure below (extracted from Frostell et al.) shows the spatial correspondan
 References
 ==========
 
-* `De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J. PAM50: Unbiased multimodal template of the brainstem and spinal cord aligned with the ICBM152 space. Neuroimage, 2018, 165:170-179. <https://pubmed.ncbi.nlm.nih.gov/29061527/>`_
-* `Levy S, Benhamou M, Naaman C, Rainville P, Callot V, Cohen-Adad J. White matter atlas of the human spinal cord with estimation of partial volume effect. Neuroimage, 2015, 119:262-271. <https://pubmed.ncbi.nlm.nih.gov/26099457/>`_
-* `Frostell A, Hakim R, Thelin EP, Mattsson P, Svensson M. A Review of the Segmental Diameter of the Healthy Human Spinal Cord. Front Neurol. 2016 Dec 23;7:238.. <https://www.frontiersin.org/articles/10.3389/fneur.2016.00238/full>`_
+* `De Leener B, Fonov VS, Collins DL, Callot V, Stikov N, Cohen-Adad J. PAM50: Unbiased multimodal template of the brainstem and spinal cord aligned with the ICBM152 space. Neuroimage, 2018, 165:170-179. <https://doi.org/10.1016/j.neuroimage.2017.10.041>`_
+* `Levy S, Benhamou M, Naaman C, Rainville P, Callot V, Cohen-Adad J. White matter atlas of the human spinal cord with estimation of partial volume effect. Neuroimage, 2015, 119:262-271. <https://doi.org/10.1016/j.neuroimage.2015.06.040>`_
+* `Frostell A, Hakim R, Thelin EP, Mattsson P, Svensson M. A Review of the Segmental Diameter of the Healthy Human Spinal Cord. Front Neurol. 2016 Dec 23;7:238.. <https://doi.org/10.3389/fneur.2016.00238>`_

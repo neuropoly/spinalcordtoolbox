@@ -34,7 +34,7 @@ You can try the ``lesion_ms`` on the sample T2w image using the following comman
 MP2RAGE-UNIT1
 *************
 
-The algorithm ``lesion_ms_mp2rage`` was trained on cropped MP2RAGE-UNIT1 images. Details: `Cohen-Adad, J., et al. Zenodo release (2023) <https://zenodo.org/doi/10.5281/zenodo.8376753>`__.
+The algorithm ``lesion_ms_mp2rage`` was trained on cropped MP2RAGE-UNIT1 images. Details: `Cohen-Adad, J., et al. Zenodo release (2023) <https://doi.org/10.5281/zenodo.8376753>`__.
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/lesion-analysis/model_seg_ms_mp2rage.png
    :align: center

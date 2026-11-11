@@ -216,7 +216,7 @@ def get_parser():
         type=int,
         choices=[0, 1],
         default=param_default.warp_histo,
-        help="Warp histology atlas from Duval et al. Neuroimage 2019 (https://pubmed.ncbi.nlm.nih.gov/30326296/)."
+        help="Warp histology atlas from Duval et al. Neuroimage 2019 (https://doi.org/10.1016/j.neuroimage.2018.10.033)."
     )
 
     # Arguments which implement shared functionality

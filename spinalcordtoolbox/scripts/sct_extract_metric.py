@@ -26,6 +26,7 @@ from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, list_type,
 from spinalcordtoolbox.utils.sys import init_sct, printv, __data_dir__, set_loglevel
 from spinalcordtoolbox.utils.fs import check_file_exist, extract_fname, get_absolute_path, TempFolder
 from spinalcordtoolbox.scripts import sct_maths
+from spinalcordtoolbox.metrics_to_PAM50 import build_pam50_agg_metric
 
 
 class Param:
@@ -163,7 +164,9 @@ def get_parser():
             Slice range to estimate the metric from. First slice is 0. Example: `5:23`
 
             You can also select specific slices using commas. Example: `0,2,3,5,12`
-        """),
+
+            Note: When using `-normalize-PAM50`, this argument still refers to slices in the native image space, since metrics are aggregated before being interpolated into PAM50 space.
+        """),  # noqa: E501 (line too long)
     )
     optional.add_argument(
         '-perslice',
@@ -204,6 +207,19 @@ def get_parser():
 
             Please note that this flag needs to be used with the -vert option.
         """),
+    )
+
+    optional.add_argument(
+        '-normalize-PAM50',
+        metavar=Metavar.int,
+        type=int,
+        choices=[0, 1],
+        default=0,
+        help="Set to 1 to interpolate the extracted metric values into PAM50 anatomical "
+             "dimensions per slice. "
+             "Requires `-vertfile` and `-perslice 1`. "
+             "Inspired by: Valošek J, Bédard S et al. Imaging Neuroscience 2024. "
+             "https://doi.org/10.1162/imag_a_00075"
     )
 
     advanced = parser.add_argument_group("FOR ADVANCED USERS")
@@ -289,6 +305,7 @@ def main(argv: Sequence[str]):
     fname_vert_level = arguments.vertfile
     perslice = arguments.perslice
     perlevel = arguments.perlevel
+    normalize_pam50 = arguments.normalize_PAM50
 
     # check if path_label is a file (e.g., single binary mask) instead of a folder (e.g., SCT atlas structure which
     # contains info_label.txt file)
@@ -384,6 +401,8 @@ def main(argv: Sequence[str]):
                f"To use vertebral level information, you may need to run "
                f"`sct_warp_template` to generate the appropriate level file in your working directory.", type=message_type)
         fname_vert_level = None
+        if normalize_pam50:
+            parser.error("Option '-normalize-PAM50' requires a valid '-vertfile'.")
     # Get dimensions of data and labels
     nx, ny, nz = data.data.shape
     nx_atlas, ny_atlas, nz_atlas, nt_atlas = labels.shape
@@ -409,11 +428,27 @@ def main(argv: Sequence[str]):
                                              map_cluster=None)
                 labels_id_user = [99]
 
+    if normalize_pam50 and not perslice:
+        parser.error("Option '-normalize-PAM50' requires option '-perslice 1'.")
+    if normalize_pam50 and perlevel:
+        parser.error("Option '-normalize-PAM50' is not compatible with option '-perlevel 1'.")
+
+    fname_vert_level_PAM50 = os.path.join(__data_dir__, 'PAM50', 'template', 'PAM50_levels.nii.gz')
+
     for id_label in labels_id_user:
         printv(f'Estimation for label: {label_struc[id_label].name}', verbose)
+
         agg_metric = extract_metric(data, labels=labels, slices=slices, levels=levels, perslice=perslice,
                                     perlevel=perlevel, fname_vert_level=fname_vert_level, method=method,
                                     label_struc=label_struc, id_label=id_label, indiv_labels_ids=indiv_labels_ids)
+        if normalize_pam50:
+            agg_metric = build_pam50_agg_metric(
+                agg_metric_native=agg_metric,
+                nz_native=nz,
+                label_name=label_struc[id_label].name,
+                method=method,
+                fname_vert_level=fname_vert_level,
+                fname_vert_level_PAM50=fname_vert_level_PAM50)
 
         save_as_csv(agg_metric, fname_output, fname_in=fname_data, append=append_csv)
         append_csv = True  # when looping across labels, need to append results in the same file

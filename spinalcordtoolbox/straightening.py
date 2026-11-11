@@ -468,7 +468,7 @@ class SpinalCordStraightener(object):
                 # Invert Z coordinate as ITK & ANTs physical coordinate system is LPS- (RAI+)
                 # while ours is LPI-
                 # Refs: https://sourceforge.net/p/advants/discussion/840261/thread/2a1e9307/#fb5a
-                #  https://www.slicer.org/wiki/Coordinate_systems
+                #       https://slicer.readthedocs.io/en/latest/user_guide/coordinate_systems.html
                 displacements_straight[:, 2] = -displacements_straight[:, 2]
                 displacements_straight[indexes_out_distance_straight] = [100000.0, 100000.0, 100000.0]
 
