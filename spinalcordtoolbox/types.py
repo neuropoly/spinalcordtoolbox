@@ -124,13 +124,16 @@ class Centerline:
     # TODO: Check if the description above is correct. I've tried to input voxel space coordinates, and it broke the
     #  code. For example, the (removed) method extract_perpendicular_square() is (i think) expecting physical coordinates.
     """
+    # NB: The tables below use vertebral naming (C1-C7, T1 = 8). Spinal level labels (C1-C8, T1 = 9, #5332) only reuse
+    #  the numbers, so the names (and `average_vert_length`) do not match the spinal levels.
     labels_regions = {'PMJ': 50, 'PMG': 49,
                       'C1': 1, 'C2': 2, 'C3': 3, 'C4': 4, 'C5': 5, 'C6': 6, 'C7': 7,
                       'T1': 8, 'T2': 9, 'T3': 10, 'T4': 11, 'T5': 12, 'T6': 13, 'T7': 14, 'T8': 15, 'T9': 16,
                       'T10': 17, 'T11': 18, 'T12': 19,
                       'L1': 20, 'L2': 21, 'L3': 22, 'L4': 23, 'L5': 24,
                       'S1': 25, 'S2': 26, 'S3': 27, 'S4': 28, 'S5': 29,
-                      'Co': 30}
+                      'Co': 30,
+                      'Co2': 31}  # TODO (#5332, temporary): 31 = inferior border of the last PAM50 spinal level
 
     convert_vertlabel2disclabel = {'PMJ': 'PMJ', 'PMG': 'PMG',
                                    'C1': 'PMG-C1', 'C2': 'C1-C2', 'C3': 'C2-C3', 'C4': 'C3-C4', 'C5': 'C4-C5',
@@ -148,7 +151,7 @@ class Centerline:
                       15: 'T8', 16: 'T9', 17: 'T10', 18: 'T11', 19: 'T12',
                       20: 'L1', 21: 'L2', 22: 'L3', 23: 'L4', 24: 'L5',
                       25: 'S1', 26: 'S2', 27: 'S3', 28: 'S4', 29: 'S5',
-                      30: 'Co'}
+                      30: 'Co', 31: 'Co2'}
 
     average_vert_length = {'PMJ': 30.0, 'PMG': 15.0, 'C1': 0.0,
                            'C2': 20.176514191661337, 'C3': 17.022090519403065, 'C4': 17.842111671016056,
@@ -186,9 +189,11 @@ class Centerline:
     #     "C5": ["C5", 16.878263370935201, 1.6952832966782569],
     # }
 
-    list_labels = [50, 49, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23]
+    # TODO (#5332, temporary): extended from 23 to 31 to also use lumbar/sacral spinal level labels
+    list_labels = [50, 49, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23,
+                   24, 25, 26, 27, 28, 29, 30, 31]
     potential_list_labels = [50, 49, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
-                             23, 24, 25, 26, 27, 28, 29, 30]
+                             23, 24, 25, 26, 27, 28, 29, 30, 31]
 
     def __init__(self, points_x=None, points_y=None, points_z=None, deriv_x=None, deriv_y=None, deriv_z=None,
                  fname=None):
@@ -467,8 +472,13 @@ class Centerline:
                 if next_label in self.index_disc:
                     denom = abs(self.dist_points[self.index_disc[next_label]] -
                                 self.dist_points[self.index_disc[current_label]])
-                else:
+                elif current_label in self.average_vert_length:
                     denom = self.average_vert_length[current_label]
+                else:
+                    # TODO (#5332, temporary): no average length available for lumbar/sacral levels
+                    raise ValueError(f"Label {self.labels_regions[next_label]} is missing between labels "
+                                     f"{self.first_label} and {self.last_label}. Gaps are not supported for "
+                                     f"labels > {self.labels_regions['L3']}.")
 
                 if current_label in ['PMJ', 'PMG']:
                     self.dist_points_rel[i] = 1 - numer/denom

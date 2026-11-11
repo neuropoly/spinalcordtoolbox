@@ -281,6 +281,52 @@ def get_parser():
     return parser
 
 
+def spinal_levels_to_border_labels(img_levels, add_terminal_borders=False):
+    """
+    TODO (#5332, temporary): Convert a spinal cord mask with discrete spinal levels (e.g. PAM50_spinal_levels.nii.gz)
+    into point-wise labels located at the spinal level borders. Label value N is placed at the superior border of
+    spinal level N, i.e. midway between the top-most slice of level N and the bottom-most slice of level N-1 (for
+    contiguous levels such as PAM50, this is the top-most slice of level N). Only borders observed between two present
+    levels are labeled. Each point is located at the in-slice center of mass of the level mask (top-most slice of N).
+    With `add_terminal_borders=True`, the superior border of the first level and the inferior border of the last level
+    (label N+1) are also added (top-most/bottom-most slice) -- use this for the template, not for subjects with
+    possibly truncated levels.
+
+    Spinal level values: C1-C8 = 1-8, T1-T12 = 9-20, L1-L5 = 21-25, S1-S5 = 26-30.
+    Lumbar border labels (PAM50):
+        21 = superior border of L1 (= inferior border of T12)
+        22 = superior border of L2 (= inferior border of L1)
+        23 = superior border of L3 (= inferior border of L2)
+        24 = superior border of L4 (= inferior border of L3)
+        25 = superior border of L5 (= inferior border of L4)
+        26 = superior border of S1 (= inferior border of L5)
+    For PAM50, the last label is 31 = inferior border of S5.
+
+    :param img_levels: Image with discrete spinal levels
+    :param add_terminal_borders: bool: also label the superior border of the first and inferior border of the last level
+    :return: Image with point-wise border labels (same orientation as input)
+    """
+    orientation = img_levels.orientation
+    img = img_levels.copy().change_orientation('RPI')
+    data = np.round(img.data).astype(int)
+    img_out = msct_image.zeros_like(img, dtype=np.uint8)
+    levels = sorted(np.unique(data[data > 0]))
+    for level in levels:
+        z_level = np.where(data == level)[2]
+        x, y = np.where(data[:, :, z_level.max()] == level)
+        x, y = int(round(x.mean())), int(round(y.mean()))
+        if level - 1 in levels:
+            # midway between level N and level N-1 (located above, i.e. higher z in RPI)
+            z_above = np.where(data == level - 1)[2].min()
+            img_out.data[x, y, (z_level.max() + z_above) // 2] = level
+        elif add_terminal_borders:
+            img_out.data[x, y, z_level.max()] = level
+        if add_terminal_borders and level == levels[-1]:
+            x, y = np.where(data[:, :, z_level.min()] == level)
+            img_out.data[int(round(x.mean())), int(round(y.mean())), z_level.min()] = level + 1
+    return img_out.change_orientation(orientation)
+
+
 # MAIN
 # ==========================================================================================
 def main(argv: Sequence[str]):
@@ -346,8 +392,11 @@ def main(argv: Sequence[str]):
         # point-wise spinal level labels
         file_template_labeling = get_file_label(os.path.join(path_template, 'template'), id_label=14)
     elif label_type == 'disc':
-        # point-wise intervertebral disc labels
-        file_template_labeling = get_file_label(os.path.join(path_template, 'template'), id_label=10)
+        # TODO (#5332, temporary): `-ldisc` is reused for spinal level borders. Border labels are generated below from
+        #  the spinal cord mask with discrete spinal levels (instead of point-wise intervertebral disc labels, id=10)
+        printv('WARNING: -ldisc is temporarily interpreted as spinal level BORDERS (label N = superior border of '
+               'spinal level N), see issue #5332.', 1, 'warning')
+        file_template_labeling = get_file_label(os.path.join(path_template, 'template'), id_label=15)
     elif label_type == 'rootlet':
         # spinal rootlets midpoints
         file_template_labeling = get_file_label(os.path.join(path_template, 'template'), id_label=17)
@@ -442,6 +491,12 @@ def main(argv: Sequence[str]):
         printv('\nGenerate labels from template vertebral labeling', verbose)
         ftmp_template_label_, ftmp_template_label = ftmp_template_label, add_suffix(ftmp_template_label, "_body")
         sct_labels.label_vertebrae(Image(ftmp_template_label_)).save(path=ftmp_template_label)
+    # TODO (#5332, temporary): Generate spinal level border labels from template spinal levels
+    elif label_type == 'disc':
+        printv('\nGenerate spinal level border labels from template spinal levels', verbose)
+        ftmp_template_label_, ftmp_template_label = ftmp_template_label, add_suffix(ftmp_template_label, "_borders")
+        spinal_levels_to_border_labels(Image(ftmp_template_label_), add_terminal_borders=True).save(path=ftmp_template_label)
+        Image(ftmp_template_label).save(os.path.join(curdir, path_output, 'PAM50_spinal_levels_borders.nii.gz'))
 
     # check if provided labels are available in the template
     printv('\nCheck if provided labels are available in the template', verbose)
