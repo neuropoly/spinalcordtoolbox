@@ -211,7 +211,7 @@ jobs:
         run: |
           ./.ci.sh -t
 
-  ubuntu-20_04:
+  ubuntu-22_04:
     name: Ubuntu 22.04 (Jammy Jellyfish)
     runs-on: ubuntu-22.04
     steps:
@@ -232,7 +232,7 @@ jobs:
           name: Pytest QC (${{ runner.os }})
           path: "/tmp/pytest-of-runner/pytest-current/qc-report-current"
 
-  ubuntu-22_04:
+  ubuntu-24_04:
     name: Ubuntu 24.04 (Noble Numbat)
     # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
     #if: ${{ env.NIGHTLY }}
