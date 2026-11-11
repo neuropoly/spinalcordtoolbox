@@ -16,9 +16,8 @@ import spinalcordtoolbox as sct
 from spinalcordtoolbox.image import Image, compute_dice, add_suffix, check_image_kind
 from spinalcordtoolbox.utils.sys import sct_test_path, __deepseg_dir__
 import spinalcordtoolbox.deepseg.models
-import spinalcordtoolbox.deepseg.inference
 
-from spinalcordtoolbox.scripts import sct_deepseg, sct_resample
+from spinalcordtoolbox.scripts import sct_deepseg, sct_resample, sct_qc
 
 
 def test_model_dict():
@@ -139,6 +138,11 @@ def test_segment_nifti_binary_seg(fname_image, fname_seg_manual, fname_out, task
                     f"Test produced label(s) '{unexpected_labels}' in segmentation which were not expected to appear."
                 )
 
+    # Generate secondary (sct_qc) QC report for the segmentation, should be identical to normal `-qc`
+    sct_qc.main(argv=['-i', fname_image, '-s', fname_out,
+                      '-p', 'sct_deepseg', '-deepseg-task', task,
+                      '-qc', tmp_path_qc])
+
 
 @pytest.fixture(scope='session')
 def t2_ax(tmp_path_factory):
@@ -237,6 +241,11 @@ def test_segment_nifti_multiclass(fname_image, fnames_seg_manual, fname_out, suf
             im_seg_manual = Image(fname_seg_manual)
             dice_segmentation = compute_dice(im_seg, im_seg_manual, mode='3d', zboundaries=False)
             assert dice_segmentation > expected_dice
+
+    # Generate secondary (sct_qc) QC report for the segmentation, should be identical to normal `-qc`
+    qc_args = ['-i', fname_image, '-s', fnames_out[0], '-s2', fnames_out[1],
+               '-p', 'sct_deepseg', '-deepseg-task', task, '-qc', tmp_path_qc]
+    sct_qc.main(argv=qc_args)
 
 
 @pytest.mark.parametrize("qc_plane", ["Axial", "Sagittal"])

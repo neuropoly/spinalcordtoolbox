@@ -443,6 +443,20 @@ class Metavar(str, Enum):
 class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
     """Custom formatter that inherits from HelpFormatter to apply the same
     tweaks across all of SCT's scripts."""
+
+    # Pattern for an inline list of values, e.g. "(choices: item1, item2, item3) (default: item1)".
+    # When such a line wraps, the wrapped lines are aligned with the first item, rather than with the label.
+    INLINE_LIST_PATTERN = re.compile(
+        r"""
+        ^\s*(?P<label>\(?\w+:\s)  # "Word: ", with an optional opening bracket, e.g. "(choices: "
+        [^\s,()]+                 # A single item: no spaces, commas, or brackets
+        (?:,\s[^\s,()]+)+         # At least 1 more item, each preceded by ", "
+        \)?\.?                    # An optional closing bracket, then an optional period
+        (?:\s\(.*\))?$            # An optional trailing parenthetical, e.g. "(default: ...)"
+        """,
+        re.VERBOSE,
+    )
+
     def __init__(self, *args, **kw):
         self._add_defaults = None
         super(SmartFormatter, self).__init__(*args, **kw)
@@ -504,6 +518,9 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
                 o = offsets[i]
                 if re.match(r"^\s+[-*]\s\w.*$", li):  # List matching: " - Text" or " * Text"
                     o += "  "  # If the line is a list item, add extra indentation to the wrapped lines (#2889)
+                # Inline list matching: "(choices: item1, item2, item3)" (see INLINE_LIST_PATTERN)
+                elif inline_list := self.INLINE_LIST_PATTERN.match(li):
+                    o += " " * len(inline_list.group("label"))  # Align wrapped lines with the first item
                 ol = len(o)
                 rest_wrap = textwrap.fill(rest, width_adjusted - ol).splitlines()
                 offset_lines = [o + wl for wl in rest_wrap]

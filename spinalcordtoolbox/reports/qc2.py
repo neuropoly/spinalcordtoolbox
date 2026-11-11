@@ -619,6 +619,9 @@ def sct_register(
 
     Axial orientation, switch between input and output images.
     """
+    if not command:
+        raise ValueError("The 'command' argument must be provided for the sct_register QC report, as there are "
+                         "multiple registration commands that can generate `sct_register` QC reports.")
     cmdline = [command]
     cmdline.extend(argv)
 
@@ -661,6 +664,7 @@ def sct_fmri_compute_tsnr(
     subject: Optional[str],
     contrast: Optional[str],
     p_resample: float | None = 0.6,
+    command: str = 'sct_fmri_compute_tsnr',
 ):
     """
     Generate a QC report for sct_fmri_compute_tsnr.
@@ -668,7 +672,6 @@ def sct_fmri_compute_tsnr(
     Axial orientation, switch between two input images, with color bar and
     mean value in spinal cord.
     """
-    command = 'sct_fmri_compute_tsnr'
     cmdline = [command]
     cmdline.extend(argv)
 
@@ -732,7 +735,6 @@ def sct_fmri_compute_tsnr(
 def sct_label_vertebrae(
     fname_input: str,
     fname_seg: str,
-    command: str,
     argv: Sequence[str],
     path_qc: str,
     dataset: Optional[str],
@@ -742,6 +744,7 @@ def sct_label_vertebrae(
     draw_text: bool = True,
     p_resample: Optional[float] = None,
     offset_text: bool = True,
+    command: str = 'sct_label_vertebrae',
 ):
     """
     Generate a QC report for sct_label_vertebrae.
@@ -861,13 +864,13 @@ def sct_label_vertebrae(
 def sct_label_utils(
     fname_input: str,
     fname_seg: str,
-    command: str,
     argv: Sequence[str],
     path_qc: str,
     dataset: Optional[str],
     subject: Optional[str],
     contrast: Optional[str],
     p_resample: Optional[float] = None,
+    command: str = 'sct_label_utils',
 ):
     """
     Generate a QC report for sct_label_utils.
@@ -1005,11 +1008,11 @@ def sct_register_multimodal(
     dataset: Optional[str],
     subject: Optional[str],
     contrast: Optional[str],
+    command: str = 'sct_register_multimodal',
 ):
     """
     Generate a QC report for sct_register_multimodal.
     """
-    command = 'sct_register_multimodal'
     cmdline = [command]
     cmdline.extend(argv)
 
@@ -1097,6 +1100,7 @@ def sct_process_segmentation(
         contrast: Optional[str],
         angle_qc: Optional[bool] = False,
         angle_type: Optional[str] = 'angle_hog',
+        command: str = 'sct_process_segmentation'
 ):
     """
     Generate one (optionally two) QC report entries for sct_process_segmentation:
@@ -1105,8 +1109,6 @@ def sct_process_segmentation(
       2. (Optional) Angle overlay: a line per slice showing the estimated cord orientation angle
          (obtained using spinalcordtoolbox.registration.algorithms.find_angle_hog when angle_type='angle_hog').
     """
-
-    command = 'sct_process_segmentation'
     cmdline = [command]
     cmdline.extend(argv)
 
@@ -1398,11 +1400,11 @@ def sct_deepseg(
     contrast: Optional[str],
     plane: Optional[str],
     fname_qc_seg: Optional[str],
+    command: str = 'sct_deepseg'
 ):
     """
     Generate a QC report for sct_deepseg, based on which task was used.
     """
-    command = 'sct_deepseg'
     cmdline = [command]
     cmdline.extend(argv)
 
@@ -1971,11 +1973,11 @@ def sct_analyze_lesion(
     dataset: Optional[str],
     subject: Optional[str],
     contrast: Optional[str],
+    command: str = 'sct_analyze_lesion'
 ):
     """
     Generate a QC report for sct_analyze_lesion, specifically highlighting the tissue bridge widths.
     """
-    command = 'sct_analyze_lesion'
     cmdline = [command]
     cmdline.extend(argv)
 
