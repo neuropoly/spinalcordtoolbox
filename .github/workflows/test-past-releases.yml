@@ -31,7 +31,7 @@ jobs:
                        "6.5", "6.4", "6.3", "6.2", "6.1", "6.0",
                        "5.8", "5.7", "5.6", "5.5", "5.4",
                        "5.3.0", "5.2.0", "5.1.0" ]
-        os: [ ubuntu-latest, macos-latest, macos-15, windows-2025 ]
+        os: [ ubuntu-latest, macos-26, macos-15, windows-2025 ]
         exclude:
           # Windows support was only properly introduced in 5.7
           - sct_version: "5.6"
