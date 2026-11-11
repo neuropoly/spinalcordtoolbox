@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Note: We could be testing `macos-14` and `macos-15` here too,
+        # Note: We could be testing `macos-15-intel` and `macos-26` here too,
         #       but we don't want too many concurrent macOS runners (see #4402).
         os: [ ubuntu-22.04, ubuntu-24.04, macos-15, windows-2022, windows-2025 ]
     runs-on: ${{ matrix.os }}

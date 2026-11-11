@@ -254,9 +254,13 @@ jobs:
         run: |
           ./.ci.sh -t
 
-  macos-14:
-    name: macOS 14.0 (Sonoma)
-    runs-on: macos-14
+  ubuntu-26_04:
+    name: Ubuntu 26.04 (Resolute Raccoon)
+    # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
+    #if: ${{ env.NIGHTLY }}
+    # in the meantime, copy-paste this:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-26.04
     steps:
       - name: Dependencies
         run: |
@@ -274,10 +278,6 @@ jobs:
 
   macos-15:
     name: macOS 15.0 (Sequoia)
-    # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
-    #if: ${{ env.NIGHTLY }}
-    # in the meantime, copy-paste this:
-    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: macos-15
     steps:
       - name: Dependencies

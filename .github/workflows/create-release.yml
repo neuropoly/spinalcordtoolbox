@@ -122,7 +122,7 @@ jobs:
     needs: generate-requirements-freeze
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-24.04, macos-14, macos-15, macos-15-intel, windows-2022, windows-2025]
+        os: [ubuntu-22.04, ubuntu-24.04, macos-15, macos-15-intel, windows-2022, windows-2025]
     runs-on: ${{ matrix.os }}
     # NB: Setting `bash` as the default shell is a bit of a hack workaround for Windows to allow it to run .sh scripts.
     #     Normally, we would ask the user to install a Windows-compatible bash via either Cygwin or Git for Windows.

@@ -31,8 +31,29 @@ jobs:
                        "6.5", "6.4", "6.3", "6.2", "6.1", "6.0",
                        "5.8", "5.7", "5.6", "5.5", "5.4",
                        "5.3.0", "5.2.0", "5.1.0" ]
-        os: [ ubuntu-latest, macos-latest, macos-15, windows-2025 ]
+        os: [ ubuntu-24.04, ubuntu-26.04, macos-latest, macos-15, windows-2025 ]
         exclude:
+          # SCT <=6.1 (Python 3.6) fails to load onnxruntime on Ubuntu 26.04 (see #5349)
+          - sct_version: "6.1"
+            os: ubuntu-26.04
+          - sct_version: "6.0"
+            os: ubuntu-26.04
+          - sct_version: "5.8"
+            os: ubuntu-26.04
+          - sct_version: "5.7"
+            os: ubuntu-26.04
+          - sct_version: "5.6"
+            os: ubuntu-26.04
+          - sct_version: "5.5"
+            os: ubuntu-26.04
+          - sct_version: "5.4"
+            os: ubuntu-26.04
+          - sct_version: "5.3.0"
+            os: ubuntu-26.04
+          - sct_version: "5.2.0"
+            os: ubuntu-26.04
+          - sct_version: "5.1.0"
+            os: ubuntu-26.04
           # Windows support was only properly introduced in 5.7
           - sct_version: "5.6"
             os: windows-2025
