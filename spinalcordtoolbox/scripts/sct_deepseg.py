@@ -14,17 +14,21 @@
 from argparse import SUPPRESS, Action
 import json
 import os
+import shutil
 import sys
 import logging
 from typing import Sequence
 from textwrap import dedent
 import functools
 
+import numpy as np
+
 from spinalcordtoolbox.reports import qc2
 from spinalcordtoolbox.image import splitext, Image, check_image_kind, add_suffix
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, display_viewer_syntax, ActionCreateFolder
 from spinalcordtoolbox.utils.sys import init_sct, printv, __sct_dir__, set_loglevel, __version__, _git_info
 from spinalcordtoolbox.utils.sys import LazyLoader
+from spinalcordtoolbox.utils.fs import tmp_create
 
 cuda = LazyLoader("cuda", globals(), 'torch.cuda')
 
@@ -322,7 +326,7 @@ def get_parser(subparser_to_return=None):
                 help="If set, the model will output a soft segmentation (i.e. float between 0 and 1) instead of a binary "
                      "segmentation."
             )
-        if task_name == 'lesion_ms':
+        if task_name in ('lesion_ms', 'brachial_plexus'):
             # Add possibility of segmenting on only 1 fold for quicker inference
             params.add_argument(
                 "-single-fold",
@@ -421,8 +425,22 @@ def main(argv: Sequence[str]):
         if not os.path.isfile(file):
             parser.error(f"This file does not exist: {file}")
 
-    # Get pipeline model names
+    # Get pipeline model names and frameworks
     name_models = models.TASKS[arguments.task]['models']
+    model_frameworks = [models.MODELS[name_model]['framework'] for name_model in name_models]
+
+    # NB: Multi-model tasks are not well-tested for nnunetv2 models. There is no guarantee that the output of the
+    #     first stage will match the expected input of the second stage. (This specifically came up for the brachial
+    #     plexus task, where the second stage expects 2-channel output combining the input and the first stage output.)
+    #     So, we include a guard here for devs -- if a new multi-model task is added, it will trigger a failure on
+    #     first run, and only after it is tested should it be added to the list below.
+    if len(name_models) > 1 and any(framework != 'ivadomed' for framework in model_frameworks):
+        tested_tasks = ["brachial_plexus"]
+        if arguments.task not in tested_tasks:
+            parser.error(
+                f"Multi-stage inference with non-ivadomed models is not yet supported for task '{arguments.task}'. "
+                "A task-specific input handler is required."
+            )
 
     # Parse -box-* once, here, and reuse `box_overrides` below in the pipeline loop.
     # Whether a given model actually uses the sc-crop pipeline (`crop_active`) is only knowable
@@ -447,7 +465,8 @@ def main(argv: Sequence[str]):
     # Run pipeline by iterating through the models
     fname_prior = None
     output_filenames = None
-    for name_model in name_models:
+    tmpdir = None
+    for idx, name_model in enumerate(name_models, start=1):
         # Check if this is an official model
         if name_model in list(models.MODELS.keys()):
             # If it is, check if it is installed
@@ -519,7 +538,7 @@ def main(argv: Sequence[str]):
             # Pass any "extra" kwargs defined only for specific models/tasks
             extra_network_kwargs = {
                 arg_name: getattr(arguments, arg_name)
-                # "single_fold" -> used only by lesion_ms
+                # "single_fold" -> used only by lesion_ms and brachial_plexus
                 # "test_time_aug" -> used only by nnunetv2 models
                 for arg_name in ["single_fold", "test_time_aug"]
                 if hasattr(arguments, arg_name)
@@ -545,7 +564,11 @@ def main(argv: Sequence[str]):
                 extra_inference_kwargs['out_fname'] = arguments.o
             # Run inference
             im_lst, target_lst = inference.segment_non_ivadomed(
-                path_model, model_type, input_filenames, thr,
+                path_model=path_model,
+                model_type=model_type,
+                # For multistage models, the output of the previous stage is used as input for the next stage
+                input_filenames=[fname_prior] if fname_prior else input_filenames,
+                threshold=thr,
                 # NOTE: contrast-agnostic nnunet model sometimes predicts pixels outside the cord, we want to
                 # set keep_largest object as the default behaviour when using this model
                 keep_largest=1 if arguments.task == 'spinalcord' else arguments.keep_largest,
@@ -558,9 +581,15 @@ def main(argv: Sequence[str]):
             )
 
         # Delete intermediate outputs
-        if fname_prior and os.path.isfile(fname_prior) and arguments.r:
+        if arguments.r:
             logger.info("Remove temporary files...")
-            os.remove(fname_prior)
+            if fname_prior and os.path.isfile(fname_prior):
+                os.remove(fname_prior)
+                fname_prior_json = f"{splitext(fname_prior)[0]}.json"
+                if os.path.isfile(fname_prior_json):
+                    os.remove(fname_prior_json)
+            if tmpdir is not None and os.path.exists(tmpdir):
+                shutil.rmtree(tmpdir)
 
         output_filenames = []
         # Save output seg
@@ -610,6 +639,22 @@ def main(argv: Sequence[str]):
         # Use the result of the current model as additional input of the next model
         fname_prior = fname_seg
 
+        # Special case for constructing the 2-channel input required by the second stage brachial_plexus model:
+        # From https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir:
+        #   > Stage 2 (Dataset202, fine): a 16-class bilateral segmentation. It takes two input channels, the
+        #   > image and the Stage 1 prediction, using the coarse map as a spatial prior.
+        # TODO: Verify that saving this image preserves the header (nibabel is known to do some odd things on save/load)
+        if arguments.task == "brachial_plexus":
+            image = Image(input_filenames[0])
+            prior = Image(fname_prior)
+            # store stacked images as (x, y, z, channels) in the array (we will transpose this before inference)
+            multichannel_data = np.stack((image.data, prior.data), axis=-1)
+            multichannel_image = Image(multichannel_data, hdr=image.hdr)
+            tmpdir = tmp_create(basename="sct_deepseg_brachial_plexus")
+            fname_multichannel = os.path.join(tmpdir, "input_channels.nii.gz")
+            multichannel_image.save(fname_multichannel)
+            fname_prior = fname_multichannel
+
     # If a crop box was saved (sc-crop pipeline was active), its filename is derived the same way
     # for both the QC report and the FSLeyes viewer command below.
     fname_cropbox = add_suffix(arguments.o if arguments.o else arguments.i[0], "_cropbox")
@@ -643,6 +688,16 @@ def main(argv: Sequence[str]):
                     offset_text=False,
                     **common_args,
                 )
+        elif arguments.task == "brachial_plexus":
+            qc2.sct_deepseg_brachial_plexus(
+                fname_input=input_filenames[0],
+                fname_seg=output_filenames[0],
+                argv=argv,
+                path_qc=os.path.abspath(arguments.qc),
+                dataset=arguments.qc_dataset,
+                subject=arguments.qc_subject,
+                contrast=arguments.qc_contrast,
+            )
         else:
             # If `arguments.qc_seg is None`, each entry will be treated as an
             # empty file with the same size as the corresponding input image

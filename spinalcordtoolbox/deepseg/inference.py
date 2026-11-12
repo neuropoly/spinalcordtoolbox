@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 import time
+from collections.abc import Mapping
 from pathlib import Path
 import glob
 import multiprocessing as mp
@@ -262,6 +263,52 @@ def average_nnunet_predictions(pred, probabilities=False):
     return pred
 
 
+def _split_nnunet_output(
+    img_out: Image,
+    labels: Mapping[str, int | list[int]],
+    soft_seg: bool,
+) -> tuple[list[str], list[Image]]:
+    """Prepare output suffixes and images from an nnUNet prediction.
+
+    :param img_out: The full, possibly multi-class prediction image.
+    :param labels: Mapping of non-background label names to their class values.
+    :param soft_seg: Whether to preserve the soft prediction (user-facing option).
+    :return: Output suffixes and corresponding images, in save order.
+    """
+    # if any of the following conditions are met, preserve the entire output as-is using the target suffix listed
+    label_sets_to_keep = (
+        # Stage 1 of the brachial_plexus model
+        ("_seg", {"DRG", "Plexus"}),
+        # Stage 2 of the brachial_plexus model
+        ("_drg_bp_seg", {f"{region}_{side}" for region in (
+            'DRG_C5', 'DRG_C6', 'DRG_C7', 'DRG_C8',
+            'BP_C5', 'BP_C6', 'BP_C7', 'BP_C8',
+        ) for side in ('R', 'L')}),
+        # Any single-class spinal cord model
+        ("_seg", {"sc"}),
+        # Individual rootlet labels
+        ("_rootlets", {f"lvl{i}" for i, label in enumerate(labels, start=1)})
+    )
+    for target, label_set in label_sets_to_keep:
+        if set(labels).issubset(label_set):
+            return [target], [img_out]
+
+    # in the case of a multiclass soft-segmentation model (e.g. lesion_ms), we don't want the per-label
+    # binarization done afterwards
+    if soft_seg:
+        return ["_softseg"], [img_out]
+
+    # For all other cases, binarize by matching array values, including nested labels with multiple values
+    targets, outputs = [], []
+    for label, label_values in labels.items():
+        label_values = label_values if isinstance(label_values, list) else [label_values]
+        bool_array = np.logical_or.reduce([img_out.data == int(val) for val in label_values])
+        targets.append(f"_{label}_seg")
+        outputs.append(Image(bool_array.astype(np.uint8), hdr=img_out.hdr))
+
+    return targets, outputs
+
+
 def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=False, soft_seg=False,
                    crop=False, crop_pad=None, box_overrides=None, out_fname=None):
     """
@@ -364,10 +411,17 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
     #       ([z,y,x]). Nibabel (the image processing library SCT uses internally) _doesn't_ have this axis-swapping
     #       behavior. So, when SCT fetches the numpy array, we have to swap axes [x] and [z] to mimic nnUNet's internal
     #       behavior. See also: https://github.com/MIC-DKFZ/nnUNet/issues/1951
-    data = img_in.data.transpose([2, 1, 0])
-    # We also need to add an axis and convert to float32 to match nnUNet's input expectations
-    # (This would automatically be done by nnUNet if we were to predict from image files, rather than a npy array.)
-    data = np.expand_dims(data, axis=0).astype(np.float32)
+    # NB: Some nnUNet models (e.g. the brachial plexus model) expect multichannel input (4D, but not temporal!)
+    #     In that case, the channels-last stacked array becomes (channels, z, y, x) for nnunet.
+    if img_in.data.ndim == 4:
+        data = img_in.data.transpose([3, 2, 1, 0]).astype(np.float32)
+        img_ref = Image(img_in.data[..., 0], hdr=img_in.hdr)  # use the first channel (img_in) as the reference
+    else:
+        data = img_in.data.transpose([2, 1, 0])
+        # NB: For 3D images, we also need to add an axis and convert to float32 to match nnUNet's input expectations
+        # (This would automatically be done by nnUNet if we were to predict from image files, rather than a npy array.)
+        data = np.expand_dims(data, axis=0).astype(np.float32)
+        img_ref = img_in
     pred = predictor.predict_single_npy_array(
         input_image=data,
         # The spacings also have to be reversed to match nnUNet's conventions.
@@ -389,7 +443,7 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
         pred = prediction_from_probability_map(prob_map)
     # Lastly, we undo the transpose to return the image from [z,y,x] (SimpleITK) to [x,y,z] (nibabel)
     pred = pred.transpose([2, 1, 0])
-    img_out = img_in.copy()
+    img_out = img_ref.copy()
     img_out.data = pred
 
     end = time.time()
@@ -423,38 +477,9 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
     if 'canal_seg' in labels.keys():
         logger.info('Keeping only the largest component.')
         img_out.data = keep_largest_object(img_out.data, x_cOm=None, y_cOm=None)
-    # for rootlets model (which has labels 'lvl1', 'lvl2', etc.), save the image directly without splitting
-    is_rootlet_model = all((label == f"lvl{i}") for i, label in enumerate(labels.keys(), start=1))
-    if is_rootlet_model:
-        targets = ["_rootlets"]
-        outputs = [img_out]
-    # for spinal cord segmentation models with only 1 output label, save the image directly with specific "_seg" suffix
-    # this is added to preserve the typical expected output for SC models (`sct_propseg`, `sct_deepseg_sc`, etc.)
-    # see also: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4805
-    elif sorted(labels.keys()) == ['sc']:
-        targets = ["_seg"]
-        outputs = [img_out]
-    # in the case of a multiclass soft-segmentation model (e.g. lesion_ms), we don't want the per-label
-    # binarization done afterwards
-    elif soft_seg:
-        targets = ["_softseg"]
-        outputs = [img_out]
-    # for the other multiclass models (SCI lesion/SC, mouse GM/WM, etc.), save 1 image per label
-    else:
-        targets, outputs = [], []
-        for label, label_values in labels.items():
-            # Binarize data array by matching array values with label values
-            # e.g. if `label_values == [1, 2]`, then for the data array, 0 -> False and 1,2 -> True
-            # This handles nested labels, e.g. when the SC includes both lesion labels (2) and cord label (1)
-            # Numpy syntax reference: https://stackoverflow.com/a/20528566
-            label_values = label_values if isinstance(label_values, list) else [label_values]      # convert to list
-            bool_array = np.logical_or.reduce([img_out.data == int(val) for val in label_values])  # 'OR' each label val
-            img_bin = Image(bool_array.astype(np.uint8), hdr=img_out.hdr)
-            target = f"_{label}_seg"
-            targets.append(target)
-            outputs.append(img_bin)
 
-    # Save each image using the suffixes determined above
+    # Split the output segmentation into multiple file outputs depending on the type of output
+    targets, outputs = _split_nnunet_output(img_out, labels, soft_seg)
     fnames_out = []
     for target, img_out in zip(targets, outputs):
         fname_out = add_suffix(fname_prediction, target)
