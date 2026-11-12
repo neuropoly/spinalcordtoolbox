@@ -99,13 +99,10 @@ def get_parser():
         action=ActionCreateFolder,
         default='.')
     optional.add_argument(
-        '-nli-slice',
+        '-slice',
         help=textwrap.dedent("""
-            Slice number (in the S-I axis) corresponding to the Neurological Level of Injury (NLI).
-            If provided, this slice will be used to measure the midsagittal A-P diameter instead of the
-            automatically computed midsagittal slice based on the lesion center of mass.
-            The measured A-P diameter is then used as a proxy for the tissue bridges.
-            This is useful when no lesion is found in the image but you still need to quantify tissue bridges.
+            Axial slice number (in the S-I axis), e.g., corresponding to the Neurological Level of Injury (NLI). If provided, this slice will be used to determine the midsagittal slice instead of the automatically computed midsagittal slice based on the lesion center of mass.
+            This is useful when no lesion is apparent in the image but you still need to quantify tissue bridges. In that case, the midsagittal spinal cord A-P diameter measured at this slice is used as a proxy for the tissue bridges (requires `-s`).
             Note: The slice number should be in the same orientation as the input image.
         """),  # noqa: E501 (line too long)
         metavar=Metavar.int,
@@ -1118,8 +1115,9 @@ class AnalyzeLesion:
             - `self.interpolated_midsagittal_slice_RPI`: float, interpolated midsagittal slice
             - `self.interpolation_slices_RPI`: list, two sagittal slices used for interpolation
 
-        If a user-provided NLI slice is available (-nli-slice option), it will be used instead of the
-        automatically computed midsagittal slice based on the lesion center of mass.
+        If a user-provided NLI (Neurological Level of Injury) slice is available (-slice option),
+        it will be used instead of the automatically computed midsagittal slice based on the lesion
+        center of mass.
 
         Steps (when NLI slice is NOT provided):
             1. Find lesion center of mass in superior-inferior axis (z direction). For example, 211.
@@ -1238,7 +1236,7 @@ class AnalyzeLesion:
         :param data2: 2D numpy array (slice 2) or single int64 (tissue bridge for slice 2)
         :return: 2D numpy array (interpolated slice) or single float64 (interpolated tissue bridge)
         """
-        # This case should realistically be handled earlier in the script by falling back to `-nli-slice`.
+        # This case should realistically be handled earlier in the script by falling back to `-slice`.
         # If a double-nan input slips through, it's a bug, so throw an error.
         if np.any(np.isnan(data1) & np.isnan(data2)):
             raise ValueError("Two 'NaN' values passed. Cannot interpolate between two 'NaN' values.")
@@ -1319,13 +1317,13 @@ class AnalyzeLesion:
             # No NLI slice provided
             if self.nli_slice is None:
                 printv('ERROR: No lesion found in the input image. You can provide a slice corresponding to '
-                       'the Neurological Level of Injury (NLI) using the `-nli-slice` option to compute the spinal '
+                       'the Neurological Level of Injury (NLI) using the `-slice` option to compute the spinal '
                        'cord A-P diameter at that slice. The measured A-P diameter will be used as a proxy for the '
                        'tissue bridges.', self.verbose, 'error')  # exit code 1
 
             # No spinal cord segmentation provided
             if self.fname_sc is None:   # we need the spinal cord segmentation to compute the spinal cord A-P diameter
-                printv('ERROR: The spinal cord segmentation (`-s` option) is required if `-nli-slice` is '
+                printv('ERROR: The spinal cord segmentation (`-s` option) is required if `-slice` is '
                        'provided.', self.verbose, 'error')  # exit code 1
 
             # Check that the NLI slice (provided by the user) is in the range of the S-I dimension
@@ -1460,7 +1458,7 @@ def main(argv: Sequence[str]):
                                path_template=path_template,
                                path_ofolder=path_results,
                                perslice=arguments.perslice,
-                               nli_slice=arguments.nli_slice,
+                               nli_slice=arguments.slice,
                                verbose=verbose)
 
     # run the analyze

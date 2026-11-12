@@ -404,7 +404,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli(tmp_path, tmp_path_qc, capfd):
     # Run the analysis on the empty lesion file
     sct_analyze_lesion.main(['-m', path_empty_lesion,
                              '-s', path_seg,
-                             '-nli-slice', '10',
+                             '-slice', '10',
                              '-ofolder', str(tmp_path),
                              '-qc', str(tmp_path_qc)])
 
@@ -447,7 +447,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_no_cord(tmp_path, tmp_path_qc, c
     # Catch the sys.exit() call using pytest
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
-                                 '-nli-slice', '20',
+                                 '-slice', '20',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -455,7 +455,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_no_cord(tmp_path, tmp_path_qc, c
     assert e.value.code == 1
 
     # Check that the appropriate warning message is in the output
-    assert "The spinal cord segmentation (`-s` option) is required if `-nli-slice` is provided" in capfd.readouterr().out
+    assert "The spinal cord segmentation (`-s` option) is required if `-slice` is provided" in capfd.readouterr().out
 
 
 @pytest.mark.sct_testing
@@ -485,7 +485,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_outside_cord(tmp_path, tmp_path_
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg_pad,
-                                 '-nli-slice', '0',  # NLI slice outside the spinal cord segmentation (the padded slice)
+                                 '-slice', '0',  # NLI slice outside the spinal cord segmentation (the padded slice)
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -516,7 +516,7 @@ def test_sct_analyze_lesion_nli_outside_image(tmp_path, tmp_path_qc, capfd):
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg,
-                                 '-nli-slice', '100',
+                                 '-slice', '100',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -552,7 +552,7 @@ def test_sct_analyze_lesion_different_dimensions_of_lesion_and_cord(tmp_path, tm
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg_pad,
-                                 '-nli-slice', '20',
+                                 '-slice', '20',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
