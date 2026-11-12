@@ -5,12 +5,13 @@ Next, we will create a `binary mask <https://homepages.inf.ed.ac.uk/rbf/HIPR2/ma
 
 .. code:: sh
 
-   sct_create_mask -i mt1.nii.gz -p centerline,mt1_seg.nii.gz -size 35mm -o mask_mt1.nii.gz
+   sct_create_mask -i mt1.nii.gz -p centerline,mt1_seg.nii.gz -size 35mm -f cylinder -o mask_mt1.nii.gz
 
 :Input arguments:
    - ``-i`` : Input image.
    - ``-p`` : Process to generate mask. By specifying 'centerline,mt1_seg.nii.gz', we tell the command to create a mask centered around the spinal cord centerline by using the segmentation file 'mt1_seg.nii.gz'
    - ``-size`` : Size of the mask in the axial plane. (You can also specify size in pixels by omitting 'mm'.)
+   - ``-f``: Shape of the mask. This is ``cylinder`` by default, but other shapes can be specified instead.
    - ``-qc`` : Directory for Quality Control reporting. QC reports allow us to evaluate the results slice-by-slice.
 
 :Output files/folders:

@@ -244,6 +244,11 @@ def get_parser():
         metavar=Metavar.str,
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -392,7 +397,7 @@ def main(argv: Sequence[str]):
         except EmptyArrayError:
             printv('Vertebral detection failed: Missing label or zero label for initial disc.', 1, 'error')
             sys.exit(1)
-        printv('.. ' + str(init_disc), verbose)
+        printv(f'.. {init_disc}', verbose)
 
         # apply laplacian filtering
         if arguments.laplacian:
@@ -457,10 +462,10 @@ def main(argv: Sequence[str]):
 
     # Generate output files
     path_seg, file_seg, ext_seg = extract_fname(fname_seg)
-    fname_seg_labeled = os.path.join(path_output, file_seg + '_labeled' + ext_seg)
+    fname_seg_labeled = os.path.join(path_output, f'{file_seg}_labeled{ext_seg}')
     printv('\nGenerate output files...', verbose)
     generate_output_file(os.path.join(path_tmp, "segmentation_labeled.nii"), fname_seg_labeled)
-    generate_output_file(os.path.join(path_tmp, "segmentation_labeled_disc.nii"), os.path.join(path_output, file_seg + '_labeled_discs' + ext_seg))
+    generate_output_file(os.path.join(path_tmp, "segmentation_labeled_disc.nii"), os.path.join(path_output, f'{file_seg}_labeled_discs{ext_seg}'))
     # copy straightening files in case subsequent SCT functions need them
     if not fname_disc:
         generate_output_file(os.path.join(path_tmp, "straightening.cache"), os.path.join(path_output, "straightening.cache"), verbose=verbose)
@@ -483,6 +488,7 @@ def main(argv: Sequence[str]):
             path_qc=os.path.abspath(arguments.qc),
             dataset=arguments.qc_dataset,
             subject=arguments.qc_subject,
+            contrast=arguments.qc_contrast,
             path_custom_labels=os.path.join(__sct_dir__, 'spinalcordtoolbox', 'reports', 'sct_label_vertebrae_regions.json'),
         )
 

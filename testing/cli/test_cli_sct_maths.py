@@ -185,17 +185,18 @@ def run_arithmetic_operation(tmp_path, dims, ops):
         path_im = str(tmp_path / f"im_{i}.nii.gz")
         Image(np.ones(dim)).save(path_im)
         if i == 0:
-            args += ["-i", path_im]
+            args.extend(["-i", path_im])
         else:
-            im_list += [path_im]
+            im_list.append(path_im)
     # Generate arg string
     if not isinstance(ops, list):
         ops = [ops]
     for op in ops:
-        args += [op] + im_list
+        args.append(op)
+        args.extend(im_list)
     # Add output image to argument list
     path_out = str(tmp_path / f"im_out{''.join(ops)}.nii.gz")
-    args += ["-o", path_out]
+    args.extend(["-o", path_out])
     # Call sct_maths and return output data
     sct_maths.main(args)
     return Image(path_out).data

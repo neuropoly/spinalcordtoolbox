@@ -1,7 +1,11 @@
 # pytest unit tests for spinalcordtoolbox.deepseg
 
+import json
 import os
+import shlex
 import shutil
+from pathlib import Path
+from unittest import mock
 
 import pytest
 import warnings
@@ -13,7 +17,7 @@ from spinalcordtoolbox.image import Image, compute_dice, add_suffix, check_image
 from spinalcordtoolbox.utils.sys import sct_test_path, __deepseg_dir__
 import spinalcordtoolbox.deepseg.models
 
-from spinalcordtoolbox.scripts import sct_deepseg, sct_resample
+from spinalcordtoolbox.scripts import sct_deepseg, sct_resample, sct_qc
 
 
 def test_model_dict():
@@ -80,6 +84,12 @@ def cleanup_model_dirs():
      'canal',
      None,
      None),
+    (sct_test_path('t2', 't2.nii.gz'),
+     None,  # no ground truth, just test if it runs
+     'brachial_plexus.nii.gz',
+     'brachial_plexus',
+     0,
+     None),
 ])
 @pytest.mark.usefixtures(cleanup_model_dirs.__name__)
 def test_segment_nifti_binary_seg(fname_image, fname_seg_manual, fname_out, task, thr, expected_dice,
@@ -133,6 +143,11 @@ def test_segment_nifti_binary_seg(fname_image, fname_seg_manual, fname_out, task
                 warnings.warn(
                     f"Test produced label(s) '{unexpected_labels}' in segmentation which were not expected to appear."
                 )
+
+    # Generate secondary (sct_qc) QC report for the segmentation, should be identical to normal `-qc`
+    sct_qc.main(argv=['-i', fname_image, '-s', fname_out,
+                      '-p', 'sct_deepseg', '-deepseg-task', task,
+                      '-qc', tmp_path_qc])
 
 
 @pytest.fixture(scope='session')
@@ -233,6 +248,11 @@ def test_segment_nifti_multiclass(fname_image, fnames_seg_manual, fname_out, suf
             dice_segmentation = compute_dice(im_seg, im_seg_manual, mode='3d', zboundaries=False)
             assert dice_segmentation > expected_dice
 
+    # Generate secondary (sct_qc) QC report for the segmentation, should be identical to normal `-qc`
+    qc_args = ['-i', fname_image, '-s', fnames_out[0], '-s2', fnames_out[1],
+               '-p', 'sct_deepseg', '-deepseg-task', task, '-qc', tmp_path_qc]
+    sct_qc.main(argv=qc_args)
+
 
 @pytest.mark.parametrize("qc_plane", ["Axial", "Sagittal"])
 @pytest.mark.usefixtures(cleanup_model_dirs.__name__)
@@ -275,3 +295,147 @@ def test_deepseg_totalspineseg_empty_output(t2_zero, tmp_path, tmp_path_qc):
                           '-o', fname_out,
                           '-qc', tmp_path_qc])
     assert "step 1 failed to produce a valid segmentation" in str(e.value)
+
+
+@pytest.mark.parametrize('box_overrides', [
+    [],  # default: sc-crop pipeline via automatic detection only, no override
+    ['-box-zmin', '0'],  # partial override: widen one face beyond the detected box
+    ['-box-xmin', '10', '-box-xmax', '59', '-box-ymin', '0', '-box-ymax', '54',
+     '-box-zmin', '3', '-box-zmax', '48'],  # all 6 faces given: skips detection entirely
+])
+@pytest.mark.usefixtures(cleanup_model_dirs.__name__)
+def test_deepseg_crop_box_override(box_overrides, tmp_path, tmp_path_qc):
+    """
+    Test the sc-crop pipeline (spinalcord task) with no override, a partial `-box-*` override
+    (patched onto the detected box), and a full `-box-*` override (skips detection entirely).
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    sct_deepseg.main(['spinalcord', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                      '-qc', tmp_path_qc] + box_overrides)
+
+    assert os.path.isfile(fname_out)
+    assert os.path.isfile(add_suffix(fname_out, "_cropbox"))  # crop-active models always produce this
+
+    im_seg = Image(fname_out)
+    im_seg_manual = Image(sct_test_path('t2', 't2_seg-manual.nii.gz'))
+    dice_segmentation = compute_dice(im_seg, im_seg_manual, mode='3d', zboundaries=False)
+    assert dice_segmentation > 0.95
+
+
+@pytest.mark.usefixtures(cleanup_model_dirs.__name__)
+def test_deepseg_full_box_override_skips_detection(tmp_path, tmp_path_qc):
+    """
+    When all 6 `-box-*` faces are given, sc_crop.detect() should not be called at all --
+    there's no point running detection just to overwrite every value it would have produced.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    with mock.patch("spinalcordtoolbox.deepseg.inference.sc_crop.detect") as mock_detect:
+        sct_deepseg.main(['spinalcord', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                          '-qc', tmp_path_qc,
+                          '-box-xmin', '10', '-box-xmax', '59', '-box-ymin', '0', '-box-ymax', '54',
+                          '-box-zmin', '3', '-box-zmax', '48'])
+    mock_detect.assert_not_called()
+
+
+def test_deepseg_box_override_rejected_for_non_crop_model(tmp_path, tmp_path_qc, capsys):
+    """
+    `-box-*` isn't even exposed as an argument for models that don't use the sc-crop pipeline.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    with pytest.raises(SystemExit):
+        sct_deepseg.main(['rootlets', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                          '-qc', tmp_path_qc, '-box-xmin', '0'])
+    assert "unrecognized arguments: -box-xmin 0" in capsys.readouterr().err
+
+
+def test_deepseg_crop_box_override_invalid_bbox_raises(tmp_path, tmp_path_qc):
+    """
+    Inverted `-box-*` coordinates (a face's min > its max) should raise a clear error rather
+    than silently producing an empty or nonsensical crop.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    with pytest.raises(ValueError) as e:
+        sct_deepseg.main(['spinalcord', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                          '-qc', tmp_path_qc, '-box-zmin', '40', '-box-zmax', '10'])
+    assert "invalid bounding box" in str(e.value)
+
+
+def test_deepseg_crop_detection_failure_raises_without_box_override(t2_zero, tmp_path, tmp_path_qc):
+    """
+    If sc-crop detection fails outright (no cord found) and no `-box-*` is given to fall back
+    on, the error should propagate instead of being silently swallowed.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    with pytest.raises(RuntimeError) as e:
+        sct_deepseg.main(['spinalcord', '-i', t2_zero, '-o', fname_out, '-qc', tmp_path_qc])
+    assert "No spinal cord detected" in str(e.value)
+
+
+def test_deepseg_crop_detection_failure_falls_back_to_full_image(t2_zero, tmp_path, tmp_path_qc):
+    """
+    If sc-crop detection fails outright but `-box-*` faces are given, fall back to the full
+    image extent for the faces not overridden, instead of crashing.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    sct_deepseg.main(['spinalcord', '-i', t2_zero, '-o', fname_out, '-qc', tmp_path_qc,
+                      '-box-zmin', '0'])
+    assert os.path.isfile(fname_out)
+
+
+@pytest.mark.usefixtures(cleanup_model_dirs.__name__)
+def test_deepseg_crop_creates_output_subdirectory(tmp_path, tmp_path_qc):
+    """
+    `-o` pointing to a not-yet-existing subdirectory shouldn't crash when saving the cropbox
+    file, which is written earlier in the pipeline than sct_deepseg.py's own output-directory
+    creation.
+    """
+    fname_out = str(tmp_path / "subdir" / "t2_seg_deepseg.nii.gz")
+    sct_deepseg.main(['spinalcord', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                      '-qc', tmp_path_qc])
+    assert os.path.isfile(fname_out)
+    assert os.path.isfile(add_suffix(fname_out, "_cropbox"))
+
+
+@pytest.mark.usefixtures(cleanup_model_dirs.__name__)
+def test_deepseg_crop_box_qc_report_entry(tmp_path, tmp_path_qc):
+    """
+    Crop-active models should get a separate QC report entry (plane='Ortho', i.e. an orthographic view) for the crop box
+    itself, distinct from the segmentation entry.
+    """
+    # `tmp_path_qc` is session-scoped (shared across tests), so record which entries already
+    # exist before this test runs its own segmentation.
+    path_json = Path(tmp_path_qc) / '_json'
+    existing = set(path_json.glob('qc_*.json')) if path_json.is_dir() else set()
+
+    fname_out = str(tmp_path / "t2_seg_deepseg.nii.gz")
+    sct_deepseg.main(['spinalcord', '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                      '-qc', tmp_path_qc])
+    fname_cropbox = add_suffix(fname_out, "_cropbox")
+    assert os.path.isfile(fname_cropbox)
+
+    new_entries = [json.loads(p.read_text()) for p in path_json.glob('qc_*.json') if p not in existing]
+    cropbox_entries = [e for e in new_entries if e['plane'] == 'Ortho']  # Orthographic view
+    assert len(cropbox_entries) == 1
+    entry = cropbox_entries[0]
+    assert entry['command'] == 'sc_crop'
+    # Neither field should mention 'sct_deepseg', so searching for either tool's name in the QC
+    # report reliably shows only that tool's rows -- not both, due to some shared substring.
+    assert 'sct_deepseg' not in entry['command']
+    assert 'sct_deepseg' not in entry['cmdline']
+    cmdline = ["sc_crop", "-i", str(sct_test_path('t2', 't2.nii.gz')), "--bbox", str(fname_cropbox)]
+    assert entry['cmdline'] == " ".join(shlex.quote(x) for x in cmdline)
+    assert (Path(tmp_path_qc) / entry['backgroundImage']).is_file()
+    assert (Path(tmp_path_qc) / entry['overlayImage']).is_file()
+
+
+@pytest.mark.parametrize("task", ["spinalcord", "lesion_ms"])
+def test_deepseg_soft_seg_produces_expected_output(tmp_path, tmp_path_qc, task):
+    """
+    Test that the softseg output is produced when requested.
+    """
+    fname_out = str(tmp_path / "t2_seg_deepseg_sosft_seg.nii.gz")
+    sct_deepseg.main([task, '-i', sct_test_path('t2', 't2.nii.gz'), '-o', fname_out,
+                      '-qc', tmp_path_qc, '-soft-seg'])
+    im_out = Image(fname_out)
+    # Check that the softseg output is a float image (not integer)
+    assert np.issubdtype(im_out.data.dtype, np.floating)

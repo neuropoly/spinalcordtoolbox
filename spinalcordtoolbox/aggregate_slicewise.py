@@ -403,10 +403,10 @@ def aggregate_per_slice_or_level(metric, mask=None, slices=[], levels=[], distan
                     if np.isnan(result):
                         result = None
                 # here we create a field with name: FUNC(METRIC_NAME). Example: MEAN(CSA)
-                agg_metric[slicegroup]['{}({})'.format(name, metric.label)] = result
+                agg_metric[slicegroup][f'{name}({metric.label})'] = result
             except Exception as e:
                 logging.warning(e)
-                agg_metric[slicegroup]['{}({})'.format(name, metric.label)] = str(e)
+                agg_metric[slicegroup][f'{name}({metric.label})'] = str(e)
 
     return agg_metric
 
@@ -423,8 +423,8 @@ def check_labels(indiv_labels_ids, selected_labels):
         # Check if the selected labels are in the available labels ids
         if not set(list_ids_of_labels_of_interest).issubset(set(indiv_labels_ids)):
             logging.error(
-                'At least one of the selected labels (' + str(list_ids_of_labels_of_interest) + ') is not available \
-according to the label list from the text file in the atlas folder.')
+                f"At least one of the selected labels ({list_ids_of_labels_of_interest}) is not available "
+                "according to the label list from the text file in the atlas folder.")
 
     return list_ids_of_labels_of_interest
 

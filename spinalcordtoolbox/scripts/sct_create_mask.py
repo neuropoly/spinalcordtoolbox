@@ -115,7 +115,7 @@ def main(argv: Sequence[str]):
     if arguments.p is not None:
         param.process = (arguments.p).split(',')
         if param.process[0] not in param.process_list:
-            printv(parser.error('ERROR: Process ' + param.process[0] + ' is not recognized.'))
+            printv(parser.error(f'ERROR: Process {param.process[0]} is not recognized.'))
     if arguments.size is not None:
         param.size = arguments.size
     if arguments.f is not None:
@@ -153,7 +153,7 @@ def create_mask(param):
 
     printv('\nOrientation:', param.verbose)
     orientation_input = Image(param.fname_data).orientation
-    printv('  ' + orientation_input, param.verbose)
+    printv(f'  {orientation_input}', param.verbose)
 
     # copy input data to tmp folder and re-orient to RPI
     Image(param.fname_data).change_orientation("RPI").save(os.path.join(path_tmp, "data_RPI.nii"))
@@ -173,7 +173,7 @@ def create_mask(param):
     printv(im_data.dim, param.verbose)
     # in case user input 4d data
     if nt != 1:
-        printv('WARNING in ' + os.path.basename(__file__) + ': Input image is 4d but output mask will be 3D from first time slice.', param.verbose, 'warning')
+        printv(f'WARNING in {os.path.basename(__file__)}: Input image is 4d but output mask will be 3D from first time slice.', param.verbose, 'warning')
         # extract first volume to have 3d reference
         nii = empty_like(Image('data_RPI.nii'))
         data3d = nii.data[:, :, :, 0]

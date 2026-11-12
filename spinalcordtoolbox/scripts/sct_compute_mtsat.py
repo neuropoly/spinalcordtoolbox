@@ -123,8 +123,8 @@ def get_json_file_name(fname, check_exist=False):
     list_ext = ['.nii', '.nii.gz']
     basename, ext = splitext(fname)
     if ext not in list_ext:
-        raise ValueError("Problem with file: {}. Extension should be one of {}".format(fname, list_ext))
-    fname_json = basename + '.json'
+        raise ValueError(f"Problem with file: {fname}. Extension should be one of {list_ext}")
+    fname_json = f'{basename}.json'
 
     if check_exist:
         if not os.path.isfile(fname_json):
@@ -144,7 +144,7 @@ def fetch_metadata(fname_json, field):
     with open(fname_json) as f:
         metadata = json.load(f)
     if field not in metadata:
-        KeyError("Json file {} does not contain the field: {}".format(fname_json, field))
+        KeyError(f"Json file {fname_json} does not contain the field: {field}")
     else:
         return metadata[field]
 

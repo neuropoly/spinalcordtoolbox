@@ -97,19 +97,20 @@ def register_landmarks(fname_src, fname_dest, dof, fname_affine='affine.txt', ve
                                                                 verbose=verbose)
     # writing rigid transformation file
     # N.B. x and y dimensions have a negative sign to ensure compatibility between Python and ITK transfo
-    text_file = open(fname_affine, 'w')
-    text_file.write("#Insight Transform File V1.0\n")
-    text_file.write("#Transform 0\n")
-    text_file.write("Transform: AffineTransform_double_3_3\n")
-    text_file.write("Parameters: %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f %.9f\n" % (
-        rotation_matrix[0, 0], rotation_matrix[0, 1], rotation_matrix[0, 2],
-        rotation_matrix[1, 0], rotation_matrix[1, 1], rotation_matrix[1, 2],
-        rotation_matrix[2, 0], rotation_matrix[2, 1], rotation_matrix[2, 2],
-        translation_array[0, 0], translation_array[0, 1], translation_array[0, 2]))
-    text_file.write("FixedParameters: %.9f %.9f %.9f\n" % (points_moving_barycenter[0],
-                                                           points_moving_barycenter[1],
-                                                           points_moving_barycenter[2]))
-    text_file.close()
+    open(fname_affine, 'w').write(
+        "#Insight Transform File V1.0\n"
+        "#Transform 0\n"
+        "Transform: AffineTransform_double_3_3\n"
+        "Parameters: "
+        f"{rotation_matrix[0, 0]:.9f} {rotation_matrix[0, 1]:.9f} {rotation_matrix[0, 2]:.9f} "
+        f"{rotation_matrix[1, 0]:.9f} {rotation_matrix[1, 1]:.9f} {rotation_matrix[1, 2]:.9f} "
+        f"{rotation_matrix[2, 0]:.9f} {rotation_matrix[2, 1]:.9f} {rotation_matrix[2, 2]:.9f} "
+        f"{translation_array[0, 0]:.9f} {translation_array[0, 1]:.9f} {translation_array[0, 2]:.9f}\n"
+        "FixedParameters: "
+        f"{points_moving_barycenter[0]:.9f} "
+        f"{points_moving_barycenter[1]:.9f} "
+        f"{points_moving_barycenter[2]:.9f}\n"
+    )
 
 
 def SSE(pointsA, pointsB):
@@ -316,7 +317,7 @@ def getRigidTransformFromLandmarks(points_dest, points_src, constraints='Tx_Ty_T
         plt.figure()  # fig2
         plt.plot(sse_results)
         plt.grid()
-        plt.title('#Iterations: ' + str(res.nit) + ', #FuncEval: ' + str(res.nfev) + ', Error: ' + str(res.fun))
+        plt.title(f'#Iterations: {res.nit}, #FuncEval: {res.nfev}, Error: {res.fun}')
         plt.show()
         plt.savefig(os.path.join('getRigidTransformFromLandmarks_iterations.png'))
 

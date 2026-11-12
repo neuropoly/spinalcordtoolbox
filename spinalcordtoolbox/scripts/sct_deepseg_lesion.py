@@ -120,10 +120,9 @@ def main(argv: Sequence[str]):
 
     remove_temp_files = arguments.r
 
-    algo_config_stg = '\nMethod:'
-    algo_config_stg += '\n\tCenterline algorithm: ' + str(ctr_algo)
-    algo_config_stg += '\n\tAssumes brain section included in the image: ' + str(brain_bool) + '\n'
-    printv(algo_config_stg)
+    printv('\nMethod:'
+           f'\n\tCenterline algorithm: {ctr_algo}'
+           f'\n\tAssumes brain section included in the image: {brain_bool}\n')
 
     # Segment image
     from spinalcordtoolbox.image import Image
@@ -133,20 +132,20 @@ def main(argv: Sequence[str]):
                                                                   brain_bool=brain_bool, remove_temp_files=remove_temp_files, verbose=verbose)
 
     # Save segmentation
-    fname_seg = os.path.abspath(os.path.join(output_folder, extract_fname(fname_image)[1] + '_lesionseg' +
-                                             extract_fname(fname_image)[2]))
+    fname_seg = os.path.abspath(os.path.join(
+        output_folder, f'{extract_fname(fname_image)[1]}_lesionseg{extract_fname(fname_image)[2]}'))
     im_seg.save(fname_seg)
 
     if ctr_algo == 'viewer':
         # Save labels
-        fname_labels = os.path.abspath(os.path.join(output_folder, extract_fname(fname_image)[1] + '_labels-centerline' +
-                                                    extract_fname(fname_image)[2]))
+        fname_labels = os.path.abspath(os.path.join(
+            output_folder, f'{extract_fname(fname_image)[1]}_labels-centerline{extract_fname(fname_image)[2]}'))
         im_labels_viewer.save(fname_labels)
 
     if verbose == 2:
         # Save ctr
-        fname_ctr = os.path.abspath(os.path.join(output_folder, extract_fname(fname_image)[1] + '_centerline' +
-                                                 extract_fname(fname_image)[2]))
+        fname_ctr = os.path.abspath(os.path.join(
+            output_folder, f'{extract_fname(fname_image)[1]}_centerline{extract_fname(fname_image)[2]}'))
         im_ctr.save(fname_ctr)
 
     display_viewer_syntax([fname_image, fname_seg], im_types=['anat', 'seg'], opacities=['', '0.7'], verbose=verbose)

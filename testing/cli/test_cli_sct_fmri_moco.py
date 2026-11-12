@@ -83,7 +83,7 @@ def test_sct_fmri_moco_dl(tmp_path_qc, fmri_mean, fmri_mask, tmp_path, fmri_mean
             '-ofolder', str(tmp_path), '-dl',
             '-qc', tmp_path_qc, '-qc-seg', fmri_mean_seg]
     if ref:
-        argv += ['-ref', fmri_mean]
+        argv.extend(['-ref', fmri_mean])
     sct_fmri_moco.main(argv=argv)
 
     def build_disp_from_params(fname_tx, fname_ty, fname_ref, fname_warp):

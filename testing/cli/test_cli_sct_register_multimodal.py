@@ -147,7 +147,7 @@ def test_sct_register_multimodal_with_labels(capsys, tmp_path, tmp_path_qc, algo
                                   '-d', sct_test_path('t2', 't2.nii.gz'),
                                   '-ilabel', sct_test_path('t2', 'labels.nii.gz'),
                                   '-dlabel', sct_test_path('t2', 'labels.nii.gz'),
-                                  '-param', 'step=0,type=label' + algo,
+                                  '-param', f'step=0,type=label{algo}',
                                   '-ofolder', str(tmp_path)])
     for file in ['t2_dest_reg.nii.gz', 't2_src_reg.nii.gz', 'warp_t22t2.nii.gz']:
         assert os.path.isfile(tmp_path / file)

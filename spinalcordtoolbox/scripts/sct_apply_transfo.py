@@ -178,17 +178,16 @@ class Transform:
             if path_warp in self.list_warpinv:
                 use_inverse.append('-i')
                 # list_warp[idx_warp] = path_warp[1:]  # remove '-'
-                fname_warp_list_invert += [[use_inverse[idx_warp], list_warp[idx_warp]]]
+                fname_warp_list_invert.extend([[use_inverse[idx_warp], list_warp[idx_warp]]])
             else:
                 use_inverse.append('')
-                fname_warp_list_invert += [[path_warp]]
+                fname_warp_list_invert.append([path_warp])
             path_warp = list_warp[idx_warp]
             if path_warp.endswith((".nii", ".nii.gz")) \
                     and Image(list_warp[idx_warp]).header.get_intent()[0] != 'vector':
-                raise ValueError("Displacement field in {} is invalid: should be encoded"
+                raise ValueError(f"Displacement field in {path_warp} is invalid: should be encoded"
                                  " in a 5D file with vector intent code"
-                                 " (see https://web.archive.org/web/20241009085040/https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h"
-                                 .format(path_warp))
+                                 " (see https://web.archive.org/web/20241009085040/https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)")
         # need to check if last warping field is an affine transfo
         isLastAffine = False
         path_fname, file_fname, ext_fname = extract_fname(fname_warp_list_invert[-1][-1])
@@ -211,7 +210,7 @@ class Transform:
         img_src = Image(fname_src)
         nx, ny, nz, nt, px, py, pz, pt = img_src.dim
         # nx, ny, nz, nt, px, py, pz, pt = get_dimension(fname_src)
-        printv('  ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz) + ' x ' + str(nt), verbose)
+        printv(f'  {nx} x {ny} x {nz} x {nt}', verbose)
 
         # if 3d
         if nt == 1:
@@ -277,8 +276,8 @@ class Transform:
             # apply transfo
             printv('\nApply transformation to each 3D volume...', verbose)
             for it in range(nt):
-                file_data_split = 'data_T' + str(it).zfill(4) + '.nii'
-                file_data_split_reg = 'data_reg_T' + str(it).zfill(4) + '.nii'
+                file_data_split = f'data_T{it:04}.nii'
+                file_data_split_reg = f'data_reg_T{it:04}.nii'
 
                 isct_antsApplyTransforms(
                     dimensionality='3',

@@ -53,7 +53,7 @@ def bspline(x, y, xref, smooth, deg_bspline=3, pz=1):
         deg_bspline -= 2
     density = (float(len(x)) / len(xref)) ** 2
     s = density * smooth * pz / float(3)
-    logger.debug('Smoothing factor: smooth={}'.format(s))
+    logger.debug(f'Smoothing factor: smooth={s}')
     # Then, run bspline interpolation
     tck = interpolate.splrep(x, y, s=s, k=deg_bspline)
     y_fit = interpolate.splev(xref, tck, der=0)
@@ -75,7 +75,7 @@ def linear(x, y, xref, smooth=0, pz=1):
     """
     y_fit = np.interp(xref, x, y, left=None, right=None, period=None)
     window_len = round_up_to_odd(smooth / float(pz))
-    logger.debug('Smoothing window: {}'.format(window_len))
+    logger.debug(f'Smoothing window: {window_len}')
     if smooth:
         y_fit = smooth1d(y_fit, window_len)
     y_fit_der = np.gradient(y_fit)
@@ -137,7 +137,7 @@ def smooth1d(x, window_len, window='hanning'):
     if window == 'flat':  # moving average
         w = np.ones(window_len, 'd')
     else:
-        w = eval('np.' + window + '(window_len)')
+        w = getattr(np, window)(window_len)
 
     y = np.convolve(w / w.sum(), s, mode='valid')
     return y[int(np.ceil(window_len/2-1)):-int(np.floor(window_len/2))]

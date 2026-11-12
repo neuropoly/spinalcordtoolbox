@@ -9,8 +9,10 @@ import sys
 from typing import Sequence
 
 from spinalcordtoolbox.utils.fs import extract_fname
-from spinalcordtoolbox.utils.sys import init_sct, set_loglevel
+from spinalcordtoolbox.utils.sys import init_sct, set_loglevel, LazyLoader
 from spinalcordtoolbox.utils.shell import Metavar, SCTArgumentParser
+
+fetcher = LazyLoader("fetcher", globals(), "dipy.data.fetcher")
 
 
 def get_parser():
@@ -54,39 +56,17 @@ def main(argv: Sequence[str]):
         fname_out = arguments.o
     else:
         path_in, file_in, ext_in = extract_fname(fname_bvecs_list[0])
-        fname_out = path_in + 'bvecs_concat' + ext_in
-
-    # # Open bvec files and collect values
-    # nb_files = len(fname_bvecs_list)
-    # bvecs_all = []
-    # for i_fname in fname_bvecs_list:
-    #     bvecs = []
-    #     with open(i_fname) as f:
-    #         for line in f:
-    #             bvec_line = map(float, line.split())
-    #             bvecs.append(bvec_line)
-    #     bvecs_all.append(bvecs)
-    #     f.close()
-    # # Concatenate
-    # bvecs_concat = ''
-    # for i in range(0, 3):
-    #     for j in range(0, nb_files):
-    #         bvecs_concat += ' '.join(str(v) for v in bvecs_all[j][i])
-    #         bvecs_concat += ' '
-    #     bvecs_concat += '\n'
-    #
+        fname_out = f'{path_in}bvecs_concat{ext_in}'
 
     # Open bvec files and collect values
-    bvecs_all = ['', '', '']
+    bvecs_all = [[], [], []]
     for i_fname in fname_bvecs_list:
-        from dipy.data.fetcher import read_bvals_bvecs
-        bval_i, bvec_i = read_bvals_bvecs(None, i_fname)
-        for i in range(0, 3):
-            bvecs_all[i] += ' '.join(str(v) for v in map(lambda n: '%.16f' % n, bvec_i[:, i]))
-            bvecs_all[i] += ' '
+        _, bvecs = fetcher.read_bvals_bvecs(None, i_fname)
+        for i in range(3):
+            bvecs_all[i].extend(f'{n:.16f}' for n in bvecs[:, i])
 
     # Concatenate
-    bvecs_concat = '\n'.join(str(v) for v in bvecs_all)
+    bvecs_concat = '\n'.join(' '.join(v) for v in bvecs_all)
 
     # Write new bvec
     new_f = open(fname_out, 'w')

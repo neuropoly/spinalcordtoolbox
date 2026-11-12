@@ -5,12 +5,12 @@ Once we have the warping field, we can use it to warp the entire template to the
 
 .. code:: sh
 
-   sct_warp_template -d mt1.nii.gz -w warp_template2mt.nii.gz -a 1 -qc ~/qc_singleSubj
+   sct_warp_template -d mt1.nii.gz -w warp_template2mt.nii.gz -a 0 -qc ~/qc_singleSubj
 
 :Input arguments:
    - ``-d`` : Destination image the template will be warped to.
    - ``-w`` : Warping field (template space to anatomical space).
-   - ``-a`` : Because ``-a 1`` is specified, the white and gray matter atlas will also be warped.
+   - ``-a`` : Because ``-a 0`` is specified, the white and gray matter atlas will not be warped to save time. For more details on ``-a 1``, we recommend the :ref:`atlas-based-analysis` tutorial.
    - ``-qc`` : Directory for Quality Control reporting. QC reports allow us to evaluate the results slice-by-slice.
 
 :Output:

@@ -122,14 +122,14 @@ def main(argv: Sequence[str]):
     if arguments.o is not None:
         fname_out = arguments.o
     else:
-        fname_out = extract_fname(fname_anat)[1] + '_smooth.nii.gz'
+        fname_out = f'{extract_fname(fname_anat)[1]}_smooth.nii.gz'
 
     # Display arguments
     printv('\nCheck input arguments...')
-    printv('  Volume to smooth .................. ' + fname_anat)
-    printv('  Centerline ........................ ' + fname_centerline)
-    printv('  Sigma (mm) ........................ ' + str(sigmas))
-    printv('  Verbose ........................... ' + str(verbose))
+    printv(f'  Volume to smooth .................. {fname_anat}')
+    printv(f'  Centerline ........................ {fname_centerline}')
+    printv(f'  Sigma (mm) ........................ {sigmas}')
+    printv(f'  Verbose ........................... {verbose}')
 
     # Check that input is 3D:
     nx, ny, nz, nt, px, py, pz, pt = Image(fname_anat).dim
@@ -140,7 +140,7 @@ def main(argv: Sequence[str]):
         dim = 2
     if dim == 4:
         printv('WARNING: the input image is 4D, please split your image to 3D before smoothing spinalcord using :\n'
-               'sct_image -i ' + fname_anat + ' -split t -o ' + fname_anat, verbose, 'warning')
+               f'sct_image -i {fname_anat} -split t -o {fname_anat}', verbose, 'warning')
         printv('4D images not supported, aborting ...', verbose, 'error')
 
     # Extract path/file/extension
@@ -151,17 +151,17 @@ def main(argv: Sequence[str]):
 
     # Copying input data to tmp folder
     printv('\nCopying input data to tmp folder and convert to nii...', verbose)
-    copy(fname_anat, os.path.join(path_tmp, "anat" + ext_anat))
-    copy(fname_centerline, os.path.join(path_tmp, "centerline" + ext_centerline))
+    copy(fname_anat, os.path.join(path_tmp, f'anat{ext_anat}'))
+    copy(fname_centerline, os.path.join(path_tmp, f'centerline{ext_centerline}'))
 
     # go to tmp folder
     curdir = os.getcwd()
     os.chdir(path_tmp)
 
     # convert to nii format
-    im_anat = convert(Image('anat' + ext_anat))
+    im_anat = convert(Image(f'anat{ext_anat}'))
     im_anat.save('anat.nii', mutable=True, verbose=verbose)
-    im_centerline = convert(Image('centerline' + ext_centerline))
+    im_centerline = convert(Image(f'centerline{ext_centerline}'))
     im_centerline.save('centerline.nii', mutable=True, verbose=verbose)
 
     # Change orientation of the input image into RPI
@@ -205,7 +205,7 @@ def main(argv: Sequence[str]):
             '-o', 'anat_rpi_straight.nii',
             '-s', fname_centerline_rpi,
             '-x', 'spline',
-            '-param', 'algo_fitting=' + param.algo_fitting,
+            '-param', f'algo_fitting={param.algo_fitting}',
             '-v', '0',
         ])
         cache_save(cachefile, cache_sig)
@@ -264,7 +264,7 @@ def main(argv: Sequence[str]):
 
     # Display elapsed time
     elapsed_time = time.time() - start_time
-    printv('\nFinished! Elapsed time: ' + str(int(np.round(elapsed_time))) + 's\n')
+    printv(f'\nFinished! Elapsed time: {int(np.round(elapsed_time))}s\n')
 
     display_viewer_syntax([fname_anat, fname_out], verbose=verbose)
 

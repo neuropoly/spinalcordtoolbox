@@ -38,6 +38,7 @@ def get_parser():
     optional = parser.optional_arggroup
     optional.add_argument(
         '-2d-slices',
+        dest='_2d_slices',
         type=int,
         help='Compute DC on 2D slices in the specified dimension',
         choices=(0, 1, 2))
@@ -86,8 +87,8 @@ def main(argv: Sequence[str]):
     tmp_dir = os.path.abspath(tmp_dir)
 
     # copy input files to tmp directory
-    fname_input1_tmp = 'tmp1_' + ''.join(extract_fname(fname_input1)[1:])
-    fname_input2_tmp = 'tmp2_' + ''.join(extract_fname(fname_input2)[1:])
+    fname_input1_tmp = f'tmp1_{"".join(extract_fname(fname_input1)[1:])}'
+    fname_input2_tmp = f'tmp2_{"".join(extract_fname(fname_input2)[1:])}'
     copy(fname_input1, os.path.join(tmp_dir, fname_input1_tmp))
     copy(fname_input2, os.path.join(tmp_dir, fname_input2_tmp))
     fname_input1 = fname_input1_tmp
@@ -118,18 +119,18 @@ def main(argv: Sequence[str]):
 
     cmd = ['isct_dice_coefficient', fname_input1, fname_input2]
 
-    if vars(arguments)["2d_slices"] is not None:
-        cmd += ['-2d-slices', str(vars(arguments)["2d_slices"])]
+    if arguments._2d_slices is not None:
+        cmd.extend(['-2d-slices', arguments._2d_slices])
     if arguments.b is not None:
-        bounding_box = arguments.b
-        cmd += ['-b'] + bounding_box
-    if arguments.bmax is not None and arguments.bmax == 1:
-        cmd += ['-bmax']
-    if arguments.bzmax is not None and arguments.bzmax == 1:
-        cmd += ['-bzmax']
+        cmd.append('-b')
+        cmd.extend(arguments.b.split(','))
+    if arguments.bmax == 1:
+        cmd.append('-bmax')
+    if arguments.bzmax == 1:
+        cmd.append('-bzmax')
     if arguments.o is not None:
         path_output, fname_output, ext = extract_fname(arguments.o)
-        cmd += ['-o', fname_output + ext]
+        cmd.extend(['-o', fname_output + ext])
 
     rm_tmp = bool(arguments.r)
 
@@ -137,7 +138,7 @@ def main(argv: Sequence[str]):
     # # commented for now as it does not cover all the feature of isct_dice_coefficient
     # #from spinalcordtoolbox.image import Image, compute_dice
     # #dice = compute_dice(Image(fname_input1), Image(fname_input2), mode='3d', zboundaries=False)
-    # #printv('Dice (python-based) = ' + str(dice), verbose)
+    # #printv(f'Dice (python-based) = {dice}', verbose)
 
     status, output = run_proc(cmd, verbose, is_sct_binary=True)
 

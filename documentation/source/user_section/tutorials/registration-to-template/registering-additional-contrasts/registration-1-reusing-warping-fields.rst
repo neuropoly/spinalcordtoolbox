@@ -19,8 +19,8 @@ Since we are starting the MT registration with an initial transformation already
 
 .. code:: sh
 
-   sct_register_multimodal -i $SCT_DIR/data/PAM50/template/PAM50_t2.nii.gz \
-                           -iseg $SCT_DIR/data/PAM50/template/PAM50_cord.nii.gz \
+   sct_register_multimodal -i "${SCT_DIR}/data/PAM50/template/PAM50_t2.nii.gz" \
+                           -iseg "${SCT_DIR}/data/PAM50/template/PAM50_cord.nii.gz" \
                            -d mt1.nii.gz \
                            -dseg mt1_seg.nii.gz \
                            -m mask_mt1.nii.gz \

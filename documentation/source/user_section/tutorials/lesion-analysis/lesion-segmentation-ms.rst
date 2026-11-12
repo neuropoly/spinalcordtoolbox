@@ -17,19 +17,24 @@ You can try the ``lesion_ms`` on the sample T2w image using the following comman
 
 .. code:: sh
 
-   sct_deepseg lesion_ms -i t2.nii.gz -qc ~/qc_singleSubj
+   # Segment the spinal cord (to be used as input for lesion_ms QC)
+   sct_deepseg spinalcord -i t2.nii.gz -qc ~/qc_singleSubj
+   # Run sct_deepseg
+   sct_deepseg lesion_ms -i t2.nii.gz -qc ~/qc_singleSubj -qc-seg t2_seg.nii.gz -single-fold
 
 :Input arguments:
     - ``lesion_ms``: Task
     - ``-i`` : Input T2w image with fake lesion
     - ``-qc`` : Directory for Quality Control reporting. QC reports allow us to evaluate the segmentation slice-by-slice
+    - ``-qc-seg``: A segmentation used to center-crop the QC axial mosaic. Using the spinal cord segmentation provides a consistent FOV compared to the lesion segmentation.
+    - ``-single-fold``: Save processing time by using only a single fold of the model ensemble. Omit this argument for an improved 5-fold soft segmentation at the cost of longer processing time.
 
 ----
 
 MP2RAGE-UNIT1
 *************
 
-The algorithm ``lesion_ms_mp2rage`` was trained on cropped MP2RAGE-UNIT1 images. Details: `Cohen-Adad, J., et al. Zenodo release (2023) <https://zenodo.org/doi/10.5281/zenodo.8376753>`__.
+The algorithm ``lesion_ms_mp2rage`` was trained on cropped MP2RAGE-UNIT1 images. Details: `Cohen-Adad, J., et al. Zenodo release (2023) <https://doi.org/10.5281/zenodo.8376753>`__.
 
 .. figure:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/lesion-analysis/model_seg_ms_mp2rage.png
    :align: center
@@ -40,9 +45,11 @@ As the model was trained on cropped images, we recommend cropping the input imag
 
 .. code:: sh
 
-   sct_deepseg spinalcord -i IMAGE_UNIT1 -o IMAGE_seg
-   sct_crop_image -i IMAGE_UNIT1 -m IMAGE_seg -dilate 30x30x5
-   sct_deepseg lesion_ms_mp2rage -i IMAGE_UNIT1 -qc ~/qc_singleSubj
+   # Perform initial spinal cord segmentation to crop the image to the spinal cord region for better performance
+   # (Replace the `$IMAGE` variables with your own filenames)
+   sct_deepseg spinalcord -i "$IMAGE_UNIT1" -o "$IMAGE_SEG"
+   sct_crop_image -i "$IMAGE_UNIT1" -m "$IMAGE_SEG" -dilate 30x30x5
+   sct_deepseg lesion_ms_mp2rage -i "$IMAGE_UNIT1" -qc ~/qc_singleSubj
 
 :Input arguments:
     - ``lesion_ms_mp2rage`` : Task to perform. In this case, we use the ``lesion_ms_mp2rage`` model

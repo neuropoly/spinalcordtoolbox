@@ -501,8 +501,8 @@ def remove_small_objects(data, dim_lst, unit, thr):
 
     if isinstance(thr, list) and (num_classes != len(thr)):
         raise ValueError(
-            "Length mismatch for remove small object postprocessing step: threshold length of {} "
-            "while the number of predicted class is {}.".format(len(thr), num_classes)
+            f"Length mismatch for remove small object postprocessing step: threshold length of {len(thr)} "
+            f"while the number of predicted class is {num_classes}."
         )
     thr = thr[0] if num_classes == 1 else thr
 

@@ -4,7 +4,7 @@ API for functions used in the sct_deepseg_gm CLI script
 Reference paper:
     Perone, C. S., Calabrese, E., & Cohen-Adad, J. (2017).
     Spinal cord gray matter segmentation using deep dilated convolutions.
-    URL: https://arxiv.org/abs/1710.01269
+    URL: https://doi.org/10.48550/arXiv.1710.01269
 
 Copyright (c) 2022 Polytechnique Montreal <www.neuro.polymtl.ca>
 License: see the file LICENSE

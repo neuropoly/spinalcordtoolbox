@@ -194,7 +194,7 @@ class MemoryTracingManager:
         # Save the snapshot
         with open(self._snapshot_outputs, 'a') as fp:
             fp.write(header)
-            fp.writelines([str(x) + '\n' for x in mem_stats])
+            fp.writelines([f'{x}\n' for x in mem_stats])
             fp.write('\n')
 
     def _finish_tracing(self):

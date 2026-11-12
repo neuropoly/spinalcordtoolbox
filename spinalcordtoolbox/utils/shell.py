@@ -62,6 +62,7 @@ IMTYPES_COLORMAP = {
     'softseg-2':   {'fsleyes': 'blue-lightblue',        'fslview': 'Blue-Lightblue',        'itksnap': 'gray'},
     'softseg-3':   {'fsleyes': 'brain_colours_2winter', 'fslview': 'Brain_Colours_2winter', 'itksnap': 'gray'},
     'softseg-4':   {'fsleyes': 'brain_colours_3warm',   'fslview': 'Brain_Colours_3warm',   'itksnap': 'gray'},
+    'cropbox':     {'fsleyes': None,                    'fslview': 'Red',                   'itksnap': 'seg'},
 }
 
 
@@ -110,7 +111,7 @@ def display_viewer_syntax(files, verbose, im_types=[], minmax=[], opacities=[], 
         cmd_strings[viewer] = cmd
 
         if verbose:
-            printv(cmd + "\n", verbose=1, type='info')
+            printv(f"{cmd}\n", verbose=1, type='info')
 
     return cmd_strings
 
@@ -120,23 +121,23 @@ def _construct_fslview_syntax(viewer, files, im_types, minmax, opacities, mode):
     n = itertools.cycle([1, 2, 3, 4])  # There are 4 colormaps for segs
     # add mode (only supported by fslview for the moment)
     if mode:
-        cmd += ' -m ' + mode
+        cmd = f'{cmd} -m {mode}'
     for i in range(len(files)):
-        cmd += ' ' + files[i]
+        cmd = f'{cmd} {files[i]}'
         if im_types:
             if im_types[i]:
                 key = im_types[i]
                 # use different colormaps for each subsequent seg
                 if key in ("seg", "softseg"):
                     key = f"{key}-{next(n)}"  # There are 4 colormaps for segs, so take modulo
-                cmd += ' -l ' + IMTYPES_COLORMAP[key]['fslview']
+                cmd = f'{cmd} -l {IMTYPES_COLORMAP[key]["fslview"]}'
         if minmax:
             if minmax[i]:
-                cmd += ' -b ' + minmax[i]  # a,b
+                cmd = f'{cmd} -b {minmax[i]}'  # a,b
         if opacities:
             if opacities[i]:
-                cmd += ' -t ' + opacities[i]
-    cmd += ' &'
+                cmd = f'{cmd} -t {opacities[i]}'
+    cmd = f'{cmd} &'
 
     return cmd
 
@@ -145,21 +146,24 @@ def _construct_fsleyes_syntax(viewer, files, im_types, minmax, opacities):
     cmd = viewer
     n = itertools.cycle([1, 2, 3, 4])  # There are 4 colormaps for segs
     for i in range(len(files)):
-        cmd += ' ' + files[i]
+        cmd = f'{cmd} {files[i]}'
         if im_types:
             if im_types[i]:
                 key = im_types[i]
                 # use different colormaps for each subsequent seg
                 if key in ("seg", "softseg"):
                     key = f"{key}-{next(n)}"
-                cmd += ' -cm ' + IMTYPES_COLORMAP[key]['fsleyes']
+                if key == 'cropbox':
+                    cmd = f'{cmd} -ot mask -mc 1 1 0 -o -w 3 -d'
+                else:
+                    cmd = f'{cmd} -cm {IMTYPES_COLORMAP[key]["fsleyes"]}'
         if minmax:
             if minmax[i]:
-                cmd += ' -dr ' + ' '.join(minmax[i].split(','))  # a b
+                cmd = f'{cmd} -dr {" ".join(minmax[i].split(","))}'  # a b
         if opacities:
             if opacities[i]:
-                cmd += ' -a ' + str(float(opacities[i]) * 100)  # in percentage
-    cmd += ' &'
+                cmd = f'{cmd} -a {float(opacities[i]) * 100}'  # in percentage
+    cmd = f'{cmd} &'
 
     return cmd
 
@@ -193,7 +197,7 @@ def _construct_itksnap_syntax(viewer, files, im_types):
     cmd = f"{viewer} -g {main_image}"
     # 2. '-o' is used for any remaining grayscale images not used as the main image (`-g`)
     if gray_images:
-        cmd += f" -o {' '.join(gray_images)}"
+        cmd = f"{cmd} -o {' '.join(gray_images)}"
     # 3. '-s' is used for any images with 1 value (binary segmentations) or >1 values (labeled segmentations).
     #    NB: There can only be one segmentation per ITKSnap command. (ITKSnap can't toggle segmentations like FSLeyes.)
     #        To get around this, we duplicate the command so that there is one command per segmentation.
@@ -229,9 +233,9 @@ class SCTArgumentParser(argparse.ArgumentParser):
         """
         # Source: https://stackoverflow.com/a/4042861
         self.print_help(sys.stderr)
-        message_formatted = (ANSIColors16.Bold + ANSIColors16.LightRed
-                             + f'\n{self.prog}: error: {message}\n\n'
-                             + ANSIColors16.ResetAll)
+        message_formatted = (f'{ANSIColors16.Bold}{ANSIColors16.LightRed}'
+                             f'\n{self.prog}: error: {message}\n\n'
+                             f'{ANSIColors16.ResetAll}')
         self.exit(2, message_formatted)
 
     # == STANDARD ARGUMENT GROUPS == #
@@ -439,6 +443,20 @@ class Metavar(str, Enum):
 class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
     """Custom formatter that inherits from HelpFormatter to apply the same
     tweaks across all of SCT's scripts."""
+
+    # Pattern for an inline list of values, e.g. "(choices: item1, item2, item3) (default: item1)".
+    # When such a line wraps, the wrapped lines are aligned with the first item, rather than with the label.
+    INLINE_LIST_PATTERN = re.compile(
+        r"""
+        ^\s*(?P<label>\(?\w+:\s)  # "Word: ", with an optional opening bracket, e.g. "(choices: "
+        [^\s,()]+                 # A single item: no spaces, commas, or brackets
+        (?:,\s[^\s,()]+)+         # At least 1 more item, each preceded by ", "
+        \)?\.?                    # An optional closing bracket, then an optional period
+        (?:\s\(.*\))?$            # An optional trailing parenthetical, e.g. "(default: ...)"
+        """,
+        re.VERBOSE,
+    )
+
     def __init__(self, *args, **kw):
         self._add_defaults = None
         super(SmartFormatter, self).__init__(*args, **kw)
@@ -491,7 +509,7 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
             li = li.rstrip()  # strip trailing whitespace
             if len(li) > 0:
                 # Check for ANSI graphics control sequences, and increase width to compensate
-                width_adjusted = width + len("".join(re.findall("\\x1b\[[0-9;]+m", li)))  # noqa: W605
+                width_adjusted = width + len("".join(re.findall(r"\x1b\[[0-9;]+m", li)))
                 # Split the line into two parts: the first line, and wrapped lines
                 init_wrap = textwrap.fill(li, width_adjusted).splitlines()
                 first = init_wrap[0]
@@ -500,6 +518,9 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter):
                 o = offsets[i]
                 if re.match(r"^\s+[-*]\s\w.*$", li):  # List matching: " - Text" or " * Text"
                     o += "  "  # If the line is a list item, add extra indentation to the wrapped lines (#2889)
+                # Inline list matching: "(choices: item1, item2, item3)" (see INLINE_LIST_PATTERN)
+                elif inline_list := self.INLINE_LIST_PATTERN.match(li):
+                    o += " " * len(inline_list.group("label"))  # Align wrapped lines with the first item
                 ol = len(o)
                 rest_wrap = textwrap.fill(rest, width_adjusted - ol).splitlines()
                 offset_lines = [o + wl for wl in rest_wrap]
@@ -541,9 +562,9 @@ def parse_num_list(str_num):
         if m is not None:
             a = int(m.group("first"))
             b = int(m.group("last"))
-            list_num += [x for x in range(a, b + 1) if x not in list_num]
+            list_num.extend(x for x in range(a, b + 1) if x not in list_num)
             continue
-        raise ValueError("unexpected group element {} group spec {}".format(element, str_num))
+        raise ValueError(f"unexpected group element {element} group spec {str_num}")
 
     return list_num
 
@@ -613,11 +634,11 @@ def parse_num_list_inv(list_int):
                 str_num = str_num[:-len(str(list_int[i - 1]))] + str(list_int[i])
             # if not, add it along with the new int value
             else:
-                str_num += ':' + str(list_int[i])
+                str_num = f'{str_num}:{list_int[i]}'
                 colon_is_present = True
         # I(i-1) != I(i)-1
         else:
-            str_num += ';' + str(list_int[i])
+            str_num = f'{str_num};{list_int[i]}'
             colon_is_present = False
 
     return str_num

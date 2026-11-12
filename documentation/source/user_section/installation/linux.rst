@@ -58,14 +58,15 @@ Install from Package
 
 The simplest way to install SCT is to use an in-place, static version of a tested package release. If you do not have any special circumstances, we recommend using this installation method.
 
-First, navigate to the `latest release <https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases>`__, then download the install script for SCT (``install_sct-<version>_linux.sh``). Major changes to each release are listed in the :doc:`/dev_section/CHANGES`.
+First, navigate to the `latest release <https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases>`__, curently |version|, then download the install script for SCT (:substitution-code:`install_sct-|version|_linux.sh`). Major changes to each release are listed in the :doc:`/dev_section/CHANGES`.
 
 Once you have downloaded SCT, open a new Terminal in the location of the downloaded script, then launch the installer using the ``bash`` command. For example, if the script was downloaded to `Downloads/`, then you would run:
 
-.. code:: sh
+.. code-block:: sh
+    :substitutions:
 
     cd ~/Downloads
-    bash install_sct-<version>_linux.sh
+    bash install_sct-|version|_linux.sh
 
 
 .. _github-install:
@@ -89,7 +90,7 @@ If you wish to benefit from the cutting-edge version of SCT, or if you wish to c
 
     .. code:: sh
 
-      git checkout <revision_of_interest>
+        git checkout <revision_of_interest>
 
 #. Run the installer and follow the instructions
 
@@ -118,7 +119,65 @@ First, `install Docker <https://docs.docker.com/engine/install/#server>`__. Be s
 
 By default, Docker commands require the use of ``sudo`` for additional permissions. If you want to run Docker commands without needing to add ``sudo``, please follow `these instructions <https://docs.docker.com/engine/install/linux-postinstall/#manage-docker-as-a-non-root-user>`__ to create a Unix group called ``docker``, then add your user account to it.
 
-Then, follow the example below to create an OS-specific SCT installation (in this case, for Ubuntu 22.04).
+From an official release
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 7.4
+
+Consult the `spinalcordtoolbox Docker registry <https://hub.docker.com/r/neuropoly/sct/tags>`__ to select a specific release and copy its tag (like |version| as in the example below). Then, you only need to pull the image to access the full extent of SCT features in that release :
+
+.. code-block:: bash
+    :substitutions:
+
+    # Start from the Terminal
+    docker pull neuropoly/sct:|version|
+    # If the previous command says 'Cannot connect to the Docker daemon', make sure the docker service is running and you have the necessary permissions to access it
+
+Preinstalling DeepSeg tasks
+"""""""""""""""""""""""""""
+
+To inject DeepSeg tasks in an official release, you need to first pull the image, then run the following command, replacing the version (|version| in the example below) with the one you want to use :
+
+.. code-block:: bash
+    :substitutions:
+
+    # Pull the Docker image for Ubuntu 22.04
+    docker pull neuropoly/sct:|version|
+    # Launch interactive mode (command-line inside container)
+    sudo docker run -it neuropoly/sct:|version|
+    # Now inside Docker container, install the DeepSeg tasks
+    sct_deepseg spinalcord -install
+    sct_deepseg tumor_t2 -install
+    # Save the state of the container as a docker image.
+    # Back on the Host machine, open a new terminal and run:
+    sudo docker ps -a  # list all containers (to find out the container ID)
+    # specify the ID, and also choose a name to use for the docker image, such as "sct_v|version|"
+    sudo docker commit <CONTAINER_ID> <IMAGE_NAME>/deepseg:spinalcord-tumor_t2
+
+From a local SCT installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 7.4
+
+Using the `Dockerfile` available in the SCT repository, you can build the container with your local modifications. Simply run the command below, replacing ``{local_sct_repository}`` with the path to your local copy of the SCT repository (e.g. ``/home/user/spinalcordtoolbox``):
+
+.. code:: sh
+
+    docker build -t <IMAGE_NAME>/sct:local {local_sct_repository}
+
+Preinstalling DeepSeg tasks
+"""""""""""""""""""""""""""
+
+You can inject DeepSeg tasks at build time by providing a comma-separated list of tasks as a build argument (``--build-arg``). For example, to install the ``spinalcord`` and ``tumor_t2`` tasks:
+
+.. code:: sh
+
+    docker build --build-arg DEEPSEG_TASKS=spinalcord,tumor_t2 -t <IMAGE_NAME>/sct:local {local_sct_repository}
+
+SCT versions before 7.4
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Follow the example below to create an OS-specific SCT installation (in this case, for Ubuntu 22.04), replacing 7.3 with the version of your choice:
 
 .. code:: bash
 
@@ -130,8 +189,8 @@ Then, follow the example below to create an OS-specific SCT installation (in thi
     apt update
     apt install git bzip2 curl gcc git libdbus-1-3 libgl1-mesa-glx libglib2.0-0 libxkbcommon-x11-0 libxrender1
     # Note for above: libdbus-1-3, libgl1-mesa-glx, libglib2.0-0, libxkbcommon-x11-0, libxrender1 are required by PyQt
-    # Install SCT (you can change 7.0 for the version of your choice)
-    git clone --branch 7.0 https://github.com/spinalcordtoolbox/spinalcordtoolbox.git sct
+    # Install SCT (you can change 7.3 for the version of your choice)
+    git clone --branch 7.3 https://github.com/spinalcordtoolbox/spinalcordtoolbox.git sct
     cd sct
     ./install_sct -iy
     source /root/.bashrc
@@ -140,10 +199,8 @@ Then, follow the example below to create an OS-specific SCT installation (in thi
     # Save the state of the container as a docker image.
     # Back on the Host machine, open a new terminal and run:
     sudo docker ps -a  # list all containers (to find out the container ID)
-    # specify the ID, and also choose a name to use for the docker image, such as "sct_v7.0"
+    # specify the ID, and also choose a name to use for the docker image, such as "sct_v7.3"
     sudo docker commit <CONTAINER_ID> <IMAGE_NAME>/ubuntu:ubuntu22.04
-
-Alternatively, you can modify and use this `example Dockerfile for SCT <https://github.com/spinalcordtoolbox/spinalcordtoolbox/tree/master/contrib/docker>`__.
 
 Enabling GUI Scripts
 ********************
@@ -162,7 +219,7 @@ First, save your Docker image if you haven't already done so:
 
     .. code:: bash
 
-        sudo docker commit <CONTAINER_ID> <IMAGE_NAME>/ubuntu:ubuntu22.04
+        sudo docker commit <CONTAINER_ID> <IMAGE_NAME>/<IMAGE_SPEC>
 
 Then, to forward the X11 server:
 
@@ -189,17 +246,17 @@ Then, to forward the X11 server:
         xhost +local:docker
 
 #. In your Terminal window, run:
-   
+
     .. code:: bash
 
-        sudo docker run -it --rm --privileged -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix <IMAGE_NAME>/ubuntu:ubuntu22.04``
+        sudo docker run -it --rm --privileged -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix <IMAGE_NAME>/<IMAGE_SPEC>``
 
 You can test whether GUI scripts are available by running the following command in your Docker container:
- 
+
     .. code:: bash
-   
+
         sct_check_dependencies
-      
+
 You should see two green ``[OK]`` symbols at the bottom of the report for "PyQT" and "matplotlib" checks, which represent the GUI features provided by SCT are now available.
 
 .. _pip-install:

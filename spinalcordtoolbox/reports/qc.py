@@ -186,7 +186,7 @@ class QcImage:
         for i, action in enumerate(self.action_list):
             logger.debug('Action List %s', action.__name__)
             if action.__name__ in ("no_seg_seg",):
-                logger.debug("Mask type %s" % mask[i].dtype)
+                logger.debug("Mask type %s", mask[i].dtype)
                 mask[i] = self._equalize_histogram(mask[i])
             ax = fig.add_axes((0, 0, 1, 1), label=str(i))
             action(self, mask[i], ax)
@@ -340,7 +340,7 @@ class QcImage:
 
 
 def generate_qc(fname_in1, fname_in2=None, fname_seg=None, plane=None, args=None, path_qc=None, dataset=None,
-                subject=None, process=None, fps=None, p_resample=None):
+                subject=None, contrast=None, process=None, fps=None, p_resample=None):
     """
     Generate a QC entry allowing to quickly review results. This function is the entry point and is called by SCT
     scripts (e.g. sct_propseg).
@@ -353,6 +353,8 @@ def generate_qc(fname_in1, fname_in2=None, fname_seg=None, plane=None, args=None
     :param path_qc: str: Path to save QC report
     :param dataset: str: Dataset name
     :param subject: str: Subject name
+    :param contrast: str: Contrast/acquisition name. If not provided, this will fall back to the name of the
+                          parent directory of `fname_in1` (which may not be meaningful for all directory layouts).
     :param process: str: Name of SCT function. e.g., sct_propseg
     :param fps: float: Number of frames per second for output gif images. Used only for sct_frmi_moco and sct_dmri_moco.
     :param p_resample: float: Resolution (in mm) to resample the image to. If not provided, resampling will fall back
@@ -440,7 +442,7 @@ def generate_qc(fname_in1, fname_in2=None, fname_seg=None, plane=None, args=None
         action_list = [QcImage.listed_seg]
         def qcslice_layout(x): return x.mosaic()[:2]
     else:
-        raise ValueError("Unrecognized process: {}".format(process))
+        raise ValueError(f"Unrecognized process: {process}")
 
     slice_subtypes = {'Axial': Axial, 'Sagittal': Sagittal}
     if plane not in slice_subtypes.keys():
@@ -507,7 +509,7 @@ def generate_qc(fname_in1, fname_in2=None, fname_seg=None, plane=None, args=None
         [images_after_moco, images_before_moco], centermass = qcslice_layout(qcslice)
         qc_image._centermass = centermass
         with create_qc_entry(
-            path_input, path_qc, command, cmdline, plane, dataset, subject,
+            path_input, path_qc, command, cmdline, plane, dataset, subject, contrast,
             image_extension='gif',
         ) as imgs_to_generate:
             qc_image._make_QC_image_for_4d_volumes(
@@ -518,6 +520,6 @@ def generate_qc(fname_in1, fname_in2=None, fname_seg=None, plane=None, args=None
     else:
         img, *mask = qcslice_layout(qcslice)
         with create_qc_entry(
-            path_input, path_qc, command, cmdline, plane, dataset, subject,
+            path_input, path_qc, command, cmdline, plane, dataset, subject, contrast,
         ) as imgs_to_generate:
             qc_image._make_QC_image_for_3d_volumes(img, mask, plane, imgs_to_generate)

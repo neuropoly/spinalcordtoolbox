@@ -65,11 +65,11 @@ def main(argv: Sequence[str]):
         fname_out = path_in + file_in + ext_in
     fid = open(fname_out, 'w')
     for iLine in range(bvecs.shape[0]):
-        fid.write(' '.join(str(i) for i in bvecs[iLine, :]) + '\n')
+        fid.write(f'{" ".join(str(i) for i in bvecs[iLine, :])}\n')
     fid.close()
 
     # display message
-    printv('Created file:\n--> ' + fname_out + '\n', verbose, 'info')
+    printv(f'Created file:\n--> {fname_out}\n', verbose, 'info')
 
 
 if __name__ == "__main__":

@@ -62,6 +62,27 @@ jobs:
         name: requirements-freeze
         path: requirements-freeze.txt
 
+  generate-containers:
+    # NB: The eWaterCycle/setup-apptainer action is not yet compatible with Ubuntu 26.04
+    # See: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/5344
+    runs-on: ubuntu-24.04
+    outputs:
+      image-tag: ${{ steps.build_containers.outputs.image-tag }}
+      apptainer-artifact: ${{ steps.build_containers.outputs.apptainer-artifact }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/build-containers
+        id: build_containers
+        with:
+          tag: ${{ github.event.inputs.milestone_title || 'dev' }}
+          push: ${{ github.event.inputs.dry_run == 'False' }}
+          load: true
+          cache-from-tag: ""
+          upload-apptainer: ${{ !(github.event_name == 'schedule') || github.event.inputs.dry_run == 'False' }}
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_RW_PAT }}
+          apptainer-token: ${{ secrets.GHCR_RW_PAT }}
+
   generate-install-methods:
     runs-on: ubuntu-latest
     steps:
@@ -87,12 +108,6 @@ jobs:
           perl -pi -e 's/SCT_GIT_REF="master"/SCT_GIT_REF="${{ github.event.inputs.milestone_title }}"/' install_sct-${{ github.event.inputs.milestone_title }}_linux.sh
           mv install_sct-${{ github.event.inputs.milestone_title }}_linux.sh install_scripts/
           cp install_scripts/install_sct-${{ github.event.inputs.milestone_title }}_linux.sh install_scripts/install_sct-${{ github.event.inputs.milestone_title }}_macos.sh
-
-      - name: Generate Apptainer Tarball
-        run: |
-          cd ./contrib/apptainer
-          ./bundle_for_release.sh ${{ github.event.inputs.milestone_title }}
-          mv sct_apptainer_${{ github.event.inputs.milestone_title }}.tar.gz ../../install_scripts
 
       - name: Upload Install Scripts
         uses: actions/upload-artifact@v7
@@ -170,7 +185,7 @@ jobs:
         path: "${{ github.workspace }}/tempdir/qc-report-current"
 
   create-release:
-    needs: [test-release, generate-install-methods]
+    needs: [test-release, generate-install-methods, generate-containers]
     runs-on: ubuntu-latest
     # Only create a release on GitHub if workflow is run manually. (This allows the other steps in the workflow to test PRs.)
     # We also only make a "real" release if the user explicitly requested it (`dry_run == False`); this allows us to
@@ -226,8 +241,7 @@ jobs:
         bodyFile: ".github/workflows/release-body.md"
         artifacts: "install_sct-${{ github.event.inputs.milestone_title }}_win.bat,\
                     install_sct-${{ github.event.inputs.milestone_title }}_linux.sh,\
-                    install_sct-${{ github.event.inputs.milestone_title }}_macos.sh,\
-                    sct_apptainer_${{ github.event.inputs.milestone_title }}.tar.gz"
+                    install_sct-${{ github.event.inputs.milestone_title }}_macos.sh"
         draft: true
 
     - name: Update `stable` docs branch to point to new release

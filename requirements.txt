@@ -96,8 +96,16 @@ transforms3d
 urllib3
 pytest_console_scripts
 pyyaml
-voxelmorph
+# In July 2026, voxelmorph released 0.3 which contained some very drastic API changes. Given the lack of upstream
+# documentation updates + outdated example scripts, I don't think we can reasonably keep voxelmorph unpinned.
+# See: https://github.com/voxelmorph/voxelmorph/issues/663
+voxelmorph<0.3
 wquantiles
 # XlxsWriter is needed to write `.xlsx` files, since pandas removed support for the `xlwt` engine
 # Source: https://github.com/pandas-dev/pandas/pull/49296
 xlsxwriter
+
+# NB: These dependencies belong to `sc_crop`, and were copied over after absorbing the `sc_crop` package into SCT
+pillow>=10.0.0
+pyyaml>=6.0
+ultralytics>=8.0.0

@@ -73,12 +73,12 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
     else:
         path, file_out, ext_out = extract_fname(fname_output)
         path_out = path if not path_out else path_out
-        file_out_inv = file_out + '_inv'
+        file_out_inv = f'{file_out}_inv'
 
     # create temporary folder
     path_tmp = tmp_create(basename="register-wrapper")
 
-    printv('\nCopying input data to tmp folder and convert to nii...', param.verbose)
+    printv("\nCopying input data to tmp folder and convert to nii...", param.verbose)
     Image(fname_src).save(os.path.join(path_tmp, "src.nii"))
     Image(fname_dest).save(os.path.join(path_tmp, "dest.nii"))
 
@@ -123,16 +123,16 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
 
     # initial warping is specified, update list of warping fields and skip step=0
     if fname_initwarp:
-        printv('\nSkip step=0 and replace with initial transformations: ', param.verbose)
-        printv('  ' + fname_initwarp, param.verbose)
+        printv("\nSkip step=0 and replace with initial transformations:", param.verbose)
+        printv(f"  {fname_initwarp}", param.verbose)
         # copy(fname_initwarp, 'warp_forward_0.nii.gz')
         warp_forward.append(fname_initwarp)
         start_step = 1
         if fname_initwarpinv:
             warp_inverse.append(fname_initwarpinv)
         else:
-            printv('\nWARNING: No initial inverse warping field was specified, therefore the registration will be '
-                   'src->dest only, and the inverse warping field will NOT be generated.', param.verbose, 'warning')
+            printv("\nWARNING: No initial inverse warping field was specified, therefore the registration will be "
+                   "src->dest only, and the inverse warping field will NOT be generated.", param.verbose, 'warning')
             generate_warpinv = 0
     else:
         if same_space:
@@ -143,7 +143,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
     # loop across registration steps
     for i_step in range(start_step, len(paramregmulti.steps)):
         step = paramregmulti.steps[str(i_step)]
-        printv('\n--\nESTIMATE TRANSFORMATION FOR STEP #' + str(i_step), param.verbose)
+        printv(f"\n--\nESTIMATE TRANSFORMATION FOR STEP #{i_step}", param.verbose)
         # identify which is the src and dest
         if step.type == 'im':
             src = ['src.nii']
@@ -166,11 +166,11 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
             dest = ['dest_RPI.nii', 'dest_label_RPI.nii']
             interp_step = ['spline']  # Maybe do or linear?
         else:
-            printv('ERROR: Wrong image type: {}'.format(step.type), 1, 'error')
+            printv("ERROR: Wrong image type: {step.type}", 1, 'error')
 
         # if step>0, apply warp_forward_concat to the src image to be used
         if (not same_space and i_step > 0) or (same_space and i_step > 1):
-            printv('\nApply transformation from previous step', param.verbose)
+            printv("\nApply transformation from previous step", param.verbose)
             for ifile in range(len(src)):
                 sct_apply_transfo.main(argv=[
                     '-i', src[ifile],
@@ -199,7 +199,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
         warp_inverse.insert(0, warp_inverse_out)
 
     # Concatenate transformations
-    printv('\nConcatenate transformations...', param.verbose)
+    printv("\nConcatenate transformations...", param.verbose)
 
     # if a warping field needs to be inverted, remove it from warp_forward
     warp_forward = [f for f in warp_forward if f not in warp_forward_winv]
@@ -208,9 +208,9 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
 
     if warp_forward_winv:
         cmd.append('-i')
-        cmd += reversed(warp_forward_winv)
+        cmd.extend(reversed(warp_forward_winv))
     if warp_forward:
-        cmd += reversed(warp_forward)
+        cmd.extend(reversed(warp_forward))
 
     status, output = run_proc(cmd, is_sct_binary=True)
     if status != 0:
@@ -223,9 +223,9 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
 
     if warp_inverse_winv:
         cmd.append('-i')
-        cmd += reversed(warp_inverse_winv)
+        cmd.extend(reversed(warp_inverse_winv))
     if warp_inverse:
-        cmd += reversed(warp_inverse)
+        cmd.extend(reversed(warp_inverse))
 
     status, output = run_proc(cmd, is_sct_binary=True)
     if status != 0:
@@ -233,7 +233,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
 
     # TODO: make the following code optional (or move it to sct_register_multimodal)
     # Apply warping field to src data
-    printv('\nApply transfo source --> dest...', param.verbose)
+    printv("\nApply transfo source --> dest...", param.verbose)
     sct_apply_transfo.main(argv=[
         '-i', 'src.nii',
         '-d', 'dest.nii',
@@ -244,7 +244,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
     ])
 
     if generate_warpinv:
-        printv('\nApply transfo dest --> source...', param.verbose)
+        printv("\nApply transfo dest --> source...", param.verbose)
         sct_apply_transfo.main(argv=[
             '-i', 'dest.nii',
             '-d', 'src.nii',
@@ -260,13 +260,13 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
     # Generate output files
     # ------------------------------------------------------------------------------------------------------------------
 
-    printv('\nGenerate output files...', param.verbose)
+    printv("\nGenerate output files...", param.verbose)
 
     # generate src -> dest output files
     fname_src2dest = os.path.join(path_out, file_out + ext_out)
     generate_output_file(os.path.join(path_tmp, "src_reg.nii"), fname_src2dest, param.verbose)
     if fname_output_warp == '':
-        fname_output_warp = os.path.join(path_out, 'warp_' + file_src + '2' + file_dest + '.nii.gz')
+        fname_output_warp = os.path.join(path_out, f'warp_{file_src}2{file_dest}.nii.gz')
     generate_output_file(os.path.join(path_tmp, "warp_src2dest.nii.gz"), fname_output_warp, param.verbose)
 
     # generate dest -> src output files
@@ -274,7 +274,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
         fname_dest2src = os.path.join(path_out, file_out_inv + ext_dest)
         generate_output_file(os.path.join(path_tmp, "dest_reg.nii"), fname_dest2src, param.verbose)
         if fname_output_warpinv == '':
-            fname_output_warpinv = os.path.join(path_out, 'warp_' + file_dest + '2' + file_src + '.nii.gz')
+            fname_output_warpinv = os.path.join(path_out, f'warp_{file_dest}2{file_src}.nii.gz')
         generate_output_file(os.path.join(path_tmp, "warp_dest2src.nii.gz"), fname_output_warpinv, param.verbose)
     else:
         # we skip generating files if there is no inverse warping field (i.e. we're doing a one-way registration)
@@ -283,7 +283,7 @@ def register_wrapper(fname_src, fname_dest, param, paramregmulti, fname_src_seg=
 
     # Delete temporary files
     if param.remove_temp_files:
-        printv('\nRemove temporary files...', param.verbose)
+        printv("\nRemove temporary files...", param.verbose)
         rmtree(path_tmp, verbose=param.verbose)
 
     return fname_src2dest, fname_dest2src, fname_output_warp, fname_output_warpinv
@@ -308,25 +308,25 @@ def register(src, dest, step, param):
         dest = dest[0]
 
     # display arguments
-    printv('Registration parameters:', param.verbose)
-    printv('  type ........... ' + step.type, param.verbose)
-    printv('  algo ........... ' + step.algo, param.verbose)
-    printv('  slicewise ...... ' + step.slicewise, param.verbose)
-    printv('  metric ......... ' + step.metric, param.verbose)
-    printv('  samplStrategy .. ' + step.samplingStrategy, param.verbose)
-    printv('  samplPercent ... ' + step.samplingPercentage, param.verbose)
-    printv('  iter ........... ' + step.iter, param.verbose)
-    printv('  smooth ......... ' + step.smooth, param.verbose)
-    printv('  laplacian ...... ' + step.laplacian, param.verbose)
-    printv('  shrink ......... ' + step.shrink, param.verbose)
-    printv('  gradStep ....... ' + step.gradStep, param.verbose)
-    printv('  deformation .... ' + step.deformation, param.verbose)
-    printv('  init ........... ' + step.init, param.verbose)
-    printv('  poly ........... ' + step.poly, param.verbose)
-    printv('  filter_size .... ' + str(step.filter_size), param.verbose)
-    printv('  dof ............ ' + step.dof, param.verbose)
-    printv('  smoothWarpXY ... ' + step.smoothWarpXY, param.verbose)
-    printv('  rot_method ..... ' + step.rot_method, param.verbose)
+    printv("Registration parameters:", param.verbose)
+    printv(f"  type ........... {step.type}", param.verbose)
+    printv(f"  algo ........... {step.algo}", param.verbose)
+    printv(f"  slicewise ...... {step.slicewise}", param.verbose)
+    printv(f"  metric ......... {step.metric}", param.verbose)
+    printv(f"  samplStrategy .. {step.samplingStrategy}", param.verbose)
+    printv(f"  samplPercent ... {step.samplingPercentage}", param.verbose)
+    printv(f"  iter ........... {step.iter}", param.verbose)
+    printv(f"  smooth ......... {step.smooth}", param.verbose)
+    printv(f"  laplacian ...... {step.laplacian}", param.verbose)
+    printv(f"  shrink ......... {step.shrink}", param.verbose)
+    printv(f"  gradStep ....... {step.gradStep}", param.verbose)
+    printv(f"  deformation .... {step.deformation}", param.verbose)
+    printv(f"  init ........... {step.init}", param.verbose)
+    printv(f"  poly ........... {step.poly}", param.verbose)
+    printv(f"  filter_size .... {step.filter_size}", param.verbose)
+    printv(f"  dof ............ {step.dof}", param.verbose)
+    printv(f"  smoothWarpXY ... {step.smoothWarpXY}", param.verbose)
+    printv(f"  rot_method ..... {step.rot_method}", param.verbose)
 
     # validate `-param` here to fail early if invalid (but after displaying them to the user)
     if step.algo == 'centermassrot':
@@ -410,7 +410,7 @@ def register(src, dest, step, param):
     elif step.algo in ['centermass', 'centermassrot', 'columnwise']:
         # check if user provided a mask-- if so, inform it will be ignored
         if fname_mask:
-            printv('\nWARNING: algo ' + step.algo + ' will ignore the provided mask.\n', 1, 'warning')
+            printv(f"\nWARNING: algo {step.algo} will ignore the provided mask.\n", 1, 'warning')
 
         warp_forward_out, warp_inverse_out = algorithms.register_step_slicewise(
             src=src,
@@ -425,7 +425,7 @@ def register(src, dest, step, param):
     elif step.algo == 'dl':
         # check if user provided a mask-- if so, inform it will be ignored
         if fname_mask:
-            printv('\nWARNING: algo ' + step.algo + ' will ignore the provided mask.\n', 1, 'warning')
+            printv(f"\nWARNING: algo {step.algo} will ignore the provided mask.\n", 1, 'warning')
 
         warp_forward_out, warp_inverse_out = algorithms.register_step_dl_multimodal_cascaded_reg(
             src=src,
@@ -435,28 +435,28 @@ def register(src, dest, step, param):
         )
 
     else:
-        printv('\nERROR: algo ' + step.algo + ' does not exist. Exit program\n', 1, 'error')
+        printv(f"\nERROR: algo {step.algo} does not exist. Exit program\n", 1, 'error')
 
     if not os.path.isfile(warp_forward_out):
         # no forward warping field for rigid and affine
-        printv('\nERROR: file ' + warp_forward_out + ' doesn\'t exist (or is not a file).\n' + output +
-               '\nERROR: ANTs failed. Exit program.\n', 1, 'error')
+        printv(f"\nERROR: file {warp_forward_out} doesn't exist (or is not a file).\n{output}\n"
+               "ERROR: ANTs failed. Exit program.\n", 1, 'error')
     elif not os.path.isfile(warp_inverse_out) and \
             step.algo not in ['rigid', 'affine', 'translation'] and \
             step.type not in ['label']:
         # no inverse warping field for rigid and affine
-        printv('\nERROR: file ' + warp_inverse_out + ' doesn\'t exist (or is not a file).\n' + output +
-               '\nERROR: ANTs failed. Exit program.\n', 1, 'error')
+        printv(f"\nERROR: file {warp_inverse_out} doesn't exist (or is not a file).\n{output}\n"
+               "ERROR: ANTs failed. Exit program.\n", 1, 'error')
     else:
         # rename warping fields
         _, _, output_ext = extract_fname(warp_forward_out)
         if output_ext in ['.txt', '.mat']:
-            warp_forward = 'warp_forward_' + str(step.step) + output_ext
+            warp_forward = f'warp_forward_{step.step}{output_ext}'
             os.rename(warp_forward_out, warp_forward)
-            warp_inverse = '-warp_forward_' + str(step.step) + output_ext
+            warp_inverse = f'-warp_forward_{step.step}{output_ext}'
         else:
-            warp_forward = 'warp_forward_' + str(step.step) + '.nii.gz'
-            warp_inverse = 'warp_inverse_' + str(step.step) + '.nii.gz'
+            warp_forward = f'warp_forward_{step.step}.nii.gz'
+            warp_inverse = f'warp_inverse_{step.step}.nii.gz'
             os.rename(warp_forward_out, warp_forward)
             os.rename(warp_inverse_out, warp_inverse)
 

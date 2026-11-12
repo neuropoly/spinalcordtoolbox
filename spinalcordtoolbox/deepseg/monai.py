@@ -84,11 +84,12 @@ def create_nnunet_from_plans(path_model, device: torch.device):
             'nonlin': nn.LeakyReLU, 'nonlin_kwargs': {'inplace': True},
         }
     }
-    assert segmentation_network_class_name in mapping.keys(), 'The network architecture specified by the plans file ' \
-                                                              'is non-standard (maybe your own?). Yo\'ll have to dive ' \
-                                                              'into either this ' \
-                                                              'function (get_network_from_plans) or ' \
-                                                              'the init of your nnUNetModule to accomodate that.'
+    assert segmentation_network_class_name in mapping.keys(), (
+        "The network architecture specified by the plans file is non-standard "
+        "(maybe your own?). You'll have to dive into either this function "
+        "(get_network_from_plans) or the init of your nnUNetModule to "
+        "accomodate that."
+    )
     network_class = mapping[segmentation_network_class_name]
 
     conv_or_blocks_per_stage = {

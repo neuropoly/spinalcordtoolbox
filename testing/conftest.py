@@ -53,7 +53,7 @@ def pytest_sessionfinish():
     # generate directory summaries for both sct_testing_data and the temporary directory
     for (folder, fname_out) in [(tmp_path, "pytest-tmp.json"),
                                 (sct_test_path(), "sct_testing_data.json"),
-                                (os.path.join(__data_dir__, "sct_example_data"), "sct_example_data.json")]:
+                                (os.path.join(__data_dir__, "sct_course_data"), "sct_course_data.json")]:
         fname_out = os.path.join(__sct_dir__, "testing", fname_out)
         if os.path.isdir(folder):
             summary = summarize_files_in_folder(folder, exclude=['straightening.cache'])

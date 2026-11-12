@@ -191,7 +191,7 @@ def create_ap_diameter_plots(angle_hog, ap0_r, ap_diameter, dim, iz, properties,
             edgecolor='orange',
             facecolor='none',
             linewidth=2,
-            label="Ellipse fitted using skimage.regionprops, angle: {:.2f}".format(-properties['orientation']*180.0/math.pi)
+            label=f"Ellipse fitted using skimage.regionprops, angle: {-properties['orientation']*180.0/math.pi:.2f}"
         )
         ax.add_patch(ellipse)
 

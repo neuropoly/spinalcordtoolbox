@@ -27,7 +27,7 @@ def dmri_t_slices(tmp_path, dmri_in):
     sct_image.main(argv=['-i', dmri_in, '-split', 't', '-o', fname_out])
 
     parent, filename, ext = extract_fname(fname_out)
-    fname_slices = [os.path.join(parent, filename + '_T' + str(i).zfill(4) + ext) for i in range(7)]
+    fname_slices = [os.path.join(parent, f'{filename}_T{i:04}{ext}') for i in range(7)]
     return fname_slices
 
 
@@ -81,7 +81,7 @@ def test_sct_image_show_header_no_checks(output_format):
 def test_sct_image_display_warp_check_output_exists():
     """Run the CLI script and check that the warp image file was created."""
     fname_in = 'warp_template2anat.nii.gz'
-    fname_out = 'grid_3_resample_' + fname_in
+    fname_out = f'grid_3_resample_{fname_in}'
     sct_image.main(argv=['-i', sct_test_path('t2', fname_in), '-display-warp'])
     assert os.path.exists(sct_test_path('t2', fname_out))
 

@@ -83,7 +83,7 @@ def dummy_centerline(size_arr=(9, 9, 9), pixdim=(1, 1, 1), subsampling=1, dilate
     img.change_orientation(orientation)
     img_sub.change_orientation(orientation)
     if debug:
-        img_sub.save('tmp_dummy_seg_'+datetime.now().strftime("%Y%m%d%H%M%S%f")+'.nii.gz')
+        img_sub.save(f'tmp_dummy_seg_{datetime.now():%Y%m%d%H%M%S%f}.nii.gz')
     return img, img_sub, arr_ctl
 
 

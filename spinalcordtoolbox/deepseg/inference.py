@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 import time
+from collections.abc import Mapping
 from pathlib import Path
 import glob
 import multiprocessing as mp
@@ -28,12 +29,25 @@ from spinalcordtoolbox.deepseg_.postprocessing import keep_largest_object, fill_
 import spinalcordtoolbox.deepseg.models as ds_models
 import spinalcordtoolbox.deepseg.monai as ds_monai
 import spinalcordtoolbox.deepseg.nnunet as ds_nnunet
+import spinalcordtoolbox.sc_crop as sc_crop
 
-from spinalcordtoolbox.utils.sys import LazyLoader
+from spinalcordtoolbox.utils.sys import LazyLoader, stylize
 
 nib = LazyLoader("nib", globals(), "nibabel")
 
 logger = logging.getLogger(__name__)
+
+
+def prediction_from_probability_map(prob_map):
+    """
+    Keep only the voxels where the foreground probability
+    beats the background probability, similar to nnunetv2.
+    """
+    if prob_map.shape[0] != 2:
+        raise ValueError(f"Expected 2-channel probability map with channels "
+                         f"in first axis, got {prob_map.shape}.")
+    background, foreground = prob_map[0], prob_map[1]
+    return np.where(foreground > background, foreground, 0)
 
 
 def segment_and_average_volumes(model_paths, input_filenames, options, use_gpu=False):
@@ -50,7 +64,7 @@ def segment_and_average_volumes(model_paths, input_filenames, options, use_gpu=F
             ivadomed.inference.segment_volume function.
         :param use_gpu: bool. Whether to try to perform inference using CUDA. (NB: Only a single GPU will be used.)
 
-        :return: list, list: List of Image objects containing the soft segmentation(s), one per prediction class, \
+        :return: list, list: List of Image objects containing the soft segmentation(s), one per prediction class,
             List of target suffix associated with each prediction
     """
     if not isinstance(model_paths, list):
@@ -234,7 +248,7 @@ def average_nnunet_predictions(pred, probabilities=False):
         for prob_map in prob_maps:  # loop over folds
             # The shape of the prob_map is (num_classes, z, y, x), so we keep only the non-background class (1)
             # Similar to nnunet, the value of the soft max is the value of the probability map at class 1 if the value is greater than that of class 0
-            fold_pred = np.where(prob_map[1] > prob_map[0], prob_map[1], 0)
+            fold_pred = prediction_from_probability_map(prob_map)
             ensembled_pred += fold_pred
         # Divide by number of folds to get the average
         pred = ensembled_pred / len(prob_maps)
@@ -249,10 +263,59 @@ def average_nnunet_predictions(pred, probabilities=False):
     return pred
 
 
-def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=False, soft_ms_lesion=False):
+def _split_nnunet_output(
+    img_out: Image,
+    labels: Mapping[str, int | list[int]],
+    soft_seg: bool,
+) -> tuple[list[str], list[Image]]:
+    """Prepare output suffixes and images from an nnUNet prediction.
+
+    :param img_out: The full, possibly multi-class prediction image.
+    :param labels: Mapping of non-background label names to their class values.
+    :param soft_seg: Whether to preserve the soft prediction (user-facing option).
+    :return: Output suffixes and corresponding images, in save order.
+    """
+    # if any of the following conditions are met, preserve the entire output as-is using the target suffix listed
+    label_sets_to_keep = (
+        # Stage 1 of the brachial_plexus model
+        ("_seg", {"DRG", "Plexus"}),
+        # Stage 2 of the brachial_plexus model
+        ("_drg_bp_seg", {f"{region}_{side}" for region in (
+            'DRG_C5', 'DRG_C6', 'DRG_C7', 'DRG_C8',
+            'BP_C5', 'BP_C6', 'BP_C7', 'BP_C8',
+        ) for side in ('R', 'L')}),
+        # Any single-class spinal cord model
+        ("_seg", {"sc"}),
+        # Individual rootlet labels
+        ("_rootlets", {f"lvl{i}" for i, label in enumerate(labels, start=1)})
+    )
+    for target, label_set in label_sets_to_keep:
+        if set(labels).issubset(label_set):
+            return [target], [img_out]
+
+    # in the case of a multiclass soft-segmentation model (e.g. lesion_ms), we don't want the per-label
+    # binarization done afterwards
+    if soft_seg:
+        return ["_softseg"], [img_out]
+
+    # For all other cases, binarize by matching array values, including nested labels with multiple values
+    targets, outputs = [], []
+    for label, label_values in labels.items():
+        label_values = label_values if isinstance(label_values, list) else [label_values]
+        bool_array = np.logical_or.reduce([img_out.data == int(val) for val in label_values])
+        targets.append(f"_{label}_seg")
+        outputs.append(Image(bool_array.astype(np.uint8), hdr=img_out.hdr))
+
+    return targets, outputs
+
+
+def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=False, soft_seg=False,
+                   crop=False, crop_pad=None, box_overrides=None, out_fname=None):
     """
     This script is used to run inference on a single subject using a nnUNetV2 model.
-    For soft segmentation of MS lesions, set `soft_ms_lesion=True`. Output segmentation will be thresholded at 1e-3.
+    For soft segmentation (of MS lesions, the spinal cord, etc.), set `soft_seg=True`.
+    If `crop=True`, the spinal cord is detected and the image cropped before inference (sc-crop), then the
+    prediction is restored to the full image space.
 
     Author: Jan Valosek, Naga Karthik
     Original script: https://github.com/ivadomed/model_seg_sci/blob/4184bc22ef7317b3de5f85dee28449d6f381c984/packaging/run_inference_single_subject.py
@@ -269,6 +332,49 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
     path_img_tmp = os.path.join(tmpdir, os.path.basename(path_img))
     shutil.copyfile(path_img, path_img_tmp)
     logger.info(f'Copied {path_img} to {path_img_tmp}')
+
+    # sc-crop: detect the SC and crop before inference; bbox is used to uncrop after.
+    # Cropping is done here in the original orientation (sc-crop is orientation-agnostic),
+    # before the reorientation step below (which preserves the orientation after cropping).
+    if crop:
+        img_nii = nib.load(path_img_tmp)
+        box_overrides = box_overrides or {}
+        box_faces = ('xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax')
+        if all(face in box_overrides for face in box_faces):
+            # All 6 faces given manually: skip detection entirely rather than running it just
+            # to immediately overwrite every value it would have produced.
+            bbox = {face: box_overrides[face] for face in box_faces}
+            bbox["original_axcodes"] = "".join(nib.aff2axcodes(img_nii.affine))
+            bbox["_original_img"] = img_nii
+        else:
+            try:
+                bbox = sc_crop.detect(img_nii, **(crop_pad or {}))
+            except RuntimeError:
+                # Detection found no cord at all, so there's no bbox to patch with box_overrides.
+                # Fall back to the full image instead, letting box_overrides (if any) restrict
+                # only the face(s) the user actually specified.
+                if not box_overrides:
+                    raise
+                shape = img_nii.shape
+                bbox = {
+                    "xmin": 0, "xmax": shape[0] - 1,
+                    "ymin": 0, "ymax": shape[1] - 1,
+                    "zmin": 0, "zmax": shape[2] - 1,
+                    "original_axcodes": "".join(nib.aff2axcodes(img_nii.affine)),
+                    "_original_img": img_nii,
+                }
+            bbox.update(box_overrides)
+        if not (bbox["xmax"] >= bbox["xmin"] and bbox["ymax"] >= bbox["ymin"] and bbox["zmax"] >= bbox["zmin"]):
+            raise ValueError("sc-crop: invalid bounding box — check that -box-* values are not inverted.")
+        fname_cropbox = add_suffix(out_fname if out_fname else path_img, "_cropbox")
+        # If -o points to a not-yet-existing subdirectory, create it -- sct_deepseg.py does the
+        # same for the segmentation output, but only after this function returns, which is too
+        # late for the cropbox file (saved here, earlier in the pipeline).
+        path_out = os.path.dirname(fname_cropbox)
+        if path_out and not os.path.exists(path_out):
+            os.makedirs(path_out)
+        sc_crop.save_bbox_nifti(bbox, img_nii, fname_cropbox)
+        nib.save(sc_crop.crop(img_nii, bbox), path_img_tmp)
 
     # Get the original orientation of the image, for example LPI
     orig_orientation = get_orientation(Image(path_img_tmp))
@@ -305,25 +411,39 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
     #       ([z,y,x]). Nibabel (the image processing library SCT uses internally) _doesn't_ have this axis-swapping
     #       behavior. So, when SCT fetches the numpy array, we have to swap axes [x] and [z] to mimic nnUNet's internal
     #       behavior. See also: https://github.com/MIC-DKFZ/nnUNet/issues/1951
-    data = img_in.data.transpose([2, 1, 0])
-    # We also need to add an axis and convert to float32 to match nnUNet's input expectations
-    # (This would automatically be done by nnUNet if we were to predict from image files, rather than a npy array.)
-    data = np.expand_dims(data, axis=0).astype(np.float32)
+    # NB: Some nnUNet models (e.g. the brachial plexus model) expect multichannel input (4D, but not temporal!)
+    #     In that case, the channels-last stacked array becomes (channels, z, y, x) for nnunet.
+    if img_in.data.ndim == 4:
+        data = img_in.data.transpose([3, 2, 1, 0]).astype(np.float32)
+        img_ref = Image(img_in.data[..., 0], hdr=img_in.hdr)  # use the first channel (img_in) as the reference
+    else:
+        data = img_in.data.transpose([2, 1, 0])
+        # NB: For 3D images, we also need to add an axis and convert to float32 to match nnUNet's input expectations
+        # (This would automatically be done by nnUNet if we were to predict from image files, rather than a npy array.)
+        data = np.expand_dims(data, axis=0).astype(np.float32)
+        img_ref = img_in
     pred = predictor.predict_single_npy_array(
         input_image=data,
         # The spacings also have to be reversed to match nnUNet's conventions.
         image_properties={'spacing': img_in.dim[6:3:-1]},
         # Save the probability maps if specified
-        save_or_return_probabilities=soft_ms_lesion,
+        save_or_return_probabilities=soft_seg,
         # If using a model ensemble, return the logits per fold so we can average them ourselves
         return_logits_per_fold=True if ensemble else False
     )
     # For the lesion_ms model, `pred` is a list of np.arrays, one per fold and needs averaging
     if ensemble:
-        pred = average_nnunet_predictions(pred, probabilities=soft_ms_lesion)
+        pred = average_nnunet_predictions(pred, probabilities=soft_seg)
+    elif soft_seg:
+        # `save_or_return_probabilities=True` without ensembling (i.e. a single, non-multi-fold model like
+        # the contrast-agnostic SC model) returns a `(segmentation, probabilities)` tuple. Keep the value only
+        # where the foreground probability beats the background one, matching the soft-value logic used by
+        # `average_nnunet_predictions` for per-fold lesion_ms predictions.
+        _, prob_map = pred
+        pred = prediction_from_probability_map(prob_map)
     # Lastly, we undo the transpose to return the image from [z,y,x] (SimpleITK) to [x,y,z] (nibabel)
     pred = pred.transpose([2, 1, 0])
-    img_out = img_in.copy()
+    img_out = img_ref.copy()
     img_out.data = pred
 
     end = time.time()
@@ -337,42 +457,29 @@ def segment_nnunet(path_img, tmpdir, predictor, device: torch.device, ensemble=F
         img_out.change_orientation(orig_orientation)
         logger.info(f'Reorientation to original orientation {orig_orientation} done.')
 
+    # sc-crop: restore the prediction to the full image space.
+    if crop:
+        seg_dtype = np.uint8 if not soft_seg else np.asanyarray(img_out.data).dtype
+        seg_full = sc_crop.uncrop(nib.Nifti1Image(np.asanyarray(img_out.data).astype(seg_dtype), img_out.affine), bbox)
+        truncated = sc_crop.check_seg_truncation(seg_full, bbox)
+        if truncated:
+            suggestions = "  ".join(f"-box-{key} <value>" for key in truncated)
+            logger.warning(stylize(
+                f"\nWARNING: the segmentation reaches the crop box at: {', '.join(truncated)}.\n"
+                f"The spinal cord is likely truncated by the crop.", ["Red", "Bold"]))
+            logger.warning(stylize(
+                f"Open *_cropbox.nii.gz in FSLeyes, read off the voxel index of the truncated "
+                f"face(s), and re-run with: {suggestions}\n", "Green"))
+        img_out = Image(np.asanyarray(seg_full.dataobj), hdr=seg_full.header)
+
     labels = {k: v for k, v in predictor.dataset_json['labels'].items() if k != 'background'}
     # for the canal model, keep only the largest object
     if 'canal_seg' in labels.keys():
         logger.info('Keeping only the largest component.')
         img_out.data = keep_largest_object(img_out.data, x_cOm=None, y_cOm=None)
-    # for rootlets model (which has labels 'lvl1', 'lvl2', etc.), save the image directly without splitting
-    is_rootlet_model = all((label == f"lvl{i}") for i, label in enumerate(labels.keys(), start=1))
-    if is_rootlet_model:
-        targets = ["_rootlets"]
-        outputs = [img_out]
-    # for spinal cord segmentation models with only 1 output label, save the image directly with specific "_seg" suffix
-    # this is added to preserve the typical expected output for SC models (`sct_propseg`, `sct_deepseg_sc`, etc.)
-    # see also: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4805
-    elif sorted(labels.keys()) == ['sc']:
-        targets = ["_seg"]
-        outputs = [img_out]
-    # in the case of the lesion_ms model for soft labels, we don't want the binarization done afterwards
-    elif soft_ms_lesion:
-        targets = ["_msLesionSoft"]
-        outputs = [img_out]
-    # for the other multiclass models (SCI lesion/SC, mouse GM/WM, etc.), save 1 image per label
-    else:
-        targets, outputs = [], []
-        for label, label_values in labels.items():
-            # Binarize data array by matching array values with label values
-            # e.g. if `label_values == [1, 2]`, then for the data array, 0 -> False and 1,2 -> True
-            # This handles nested labels, e.g. when the SC includes both lesion labels (2) and cord label (1)
-            # Numpy syntax reference: https://stackoverflow.com/a/20528566
-            label_values = label_values if isinstance(label_values, list) else [label_values]      # convert to list
-            bool_array = np.logical_or.reduce([img_out.data == int(val) for val in label_values])  # 'OR' each label val
-            img_bin = Image(bool_array.astype(np.uint8), hdr=img_out.hdr)
-            target = f"_{label}_seg"
-            targets.append(target)
-            outputs.append(img_bin)
 
-    # Save each image using the suffixes determined above
+    # Split the output segmentation into multiple file outputs depending on the type of output
+    targets, outputs = _split_nnunet_output(img_out, labels, soft_seg)
     fnames_out = []
     for target, img_out in zip(targets, outputs):
         fname_out = add_suffix(fname_prediction, target)
@@ -431,11 +538,10 @@ def segment_totalspineseg(path_img, tmpdir, predictor, device, label_vert=False)
         "step2_output": "totalspineseg_all",
     }
     fnames_out, targets = [], []
-    expected_outputs = ["step1_levels"]
-    if label_vert:
-        expected_outputs += ["step2_output"]
-    else:
-        expected_outputs += ["step1_output"]
+    expected_outputs = [
+        "step1_levels",
+        "step2_output" if label_vert else "step1_output",
+    ]
     for output_dirname in expected_outputs:
         fnames_out.append(os.path.join(tmpdir_nnunet, output_dirname, os.path.basename(path_img)))
         targets.append(f"_{name_remapping[output_dirname]}")

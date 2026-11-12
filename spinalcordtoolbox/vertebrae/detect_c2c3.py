@@ -48,11 +48,11 @@ def detect_c2c3(nii_im, nii_seg, contrast, nb_sag_avg=7.0, verbose=1):
     :return:
     """
     # path to the pmj detector
-    path_model = os.path.join(__data_dir__, 'c2c3_disc_models', '{}_model'.format(contrast))
+    path_model = os.path.join(__data_dir__, 'c2c3_disc_models', f'{contrast}_model')
     # check if model exists
-    if not os.path.isfile(path_model+'.yml'):
+    if not os.path.isfile(f'{path_model}.yml'):
         raise FileNotFoundError(
-            "The model file {} does not exist. Please download it using sct_download_data".format(path_model+'.yml'))
+            f"The model file {path_model}.yml does not exist. Please download it using sct_download_data")
 
     orientation_init = nii_im.orientation
     z_seg_max = np.max(np.where(nii_seg.change_orientation('PIR').data)[1])
@@ -135,7 +135,7 @@ def detect_c2c3(nii_im, nii_seg, contrast, nb_sag_avg=7.0, verbose=1):
         logger.info("Remove temporary files...")
         tmp_folder.cleanup()
     else:
-        logger.info("Temporary files saved to "+tmp_folder.get_path())
+        logger.info(f"Temporary files saved to {tmp_folder.get_path()}")
 
     nii_c2c3.change_orientation(orientation_init)
     return nii_c2c3

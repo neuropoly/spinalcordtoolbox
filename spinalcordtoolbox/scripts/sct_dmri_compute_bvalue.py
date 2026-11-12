@@ -31,16 +31,16 @@ def main(argv: Sequence[str]):
 
     # printv(arguments)
     printv('\nCheck parameters:')
-    printv('  gradient amplitude ..... ' + str(gradamp) + ' mT/m')
-    printv('  big delta .............. ' + str(bigdelta) + ' ms')
-    printv('  small delta ............ ' + str(smalldelta) + ' ms')
-    printv('  gyromagnetic ratio ..... ' + str(GYRO) + ' Hz/T')
+    printv(f'  gradient amplitude ..... {gradamp} mT/m')
+    printv(f'  big delta .............. {bigdelta} ms')
+    printv(f'  small delta ............ {smalldelta} ms')
+    printv(f'  gyromagnetic ratio ..... {GYRO} Hz/T')
     printv('')
 
     bvalue = (2 * math.pi * GYRO * gradamp * 0.001 * smalldelta * 0.001) ** 2 * (
         bigdelta * 0.001 - smalldelta * 0.001 / 3)
 
-    printv('b-value = ' + str(bvalue / 10 ** 6) + ' mm^2/s\n')
+    printv(f'b-value = {bvalue / 10 ** 6} mm^2/s\n')
     return bvalue
 
 

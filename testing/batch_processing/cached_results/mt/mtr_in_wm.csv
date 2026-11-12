@@ -1,2 +1,0 @@
-Timestamp,SCT Version,Filename,Slice (I->S),VertLevel,DistancePMJ,Label,Size [vox],MAP(),STD()
-"2026-05-08 13:16:42","git-HEAD-9cdeda3ede4ce055058a02e4ee6e11255b9c1daf","/home/runner/work/spinalcordtoolbox/spinalcordtoolbox/data/sct_example_data/mt/mtr.nii.gz","4:17","2:5","","white matter",967.0119372230943,54.399745947796255,4.596292300232886

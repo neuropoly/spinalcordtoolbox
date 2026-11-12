@@ -128,6 +128,11 @@ def get_parser():
         metavar=Metavar.str,
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -160,7 +165,7 @@ class AnalyzeLesion:
             if set(np.unique(Image(fname_mask).data)) == set([0.0]):
                 printv('WARNING: Empty masked image', self.verbose, 'warning')
             else:
-                printv("ERROR input file %s is not binary file with 0 and 1 values" % fname_mask, 1, 'error')
+                printv(f"ERROR input file {fname_mask} is not binary file with 0 and 1 values", 1, 'error')
 
         if fname_sc is not None:
             if not Image(fname_mask).dim[0:3] == Image(fname_sc).dim[0:3]:
@@ -170,13 +175,13 @@ class AnalyzeLesion:
         self.tmp_dir = tmp_create(basename="analyze-lesion")  # path to tmp directory
 
         # lesion file where each lesion has a different value
-        self.fname_label = extract_fname(self.fname_mask)[1] + '_label' + extract_fname(self.fname_mask)[2]
+        self.fname_label = f'{extract_fname(self.fname_mask)[1]}_label{extract_fname(self.fname_mask)[2]}'
 
         # initialization of measure sheet
         measure_lst = ['label'] + self.measure_keys
         if self.fname_ref is not None:
             for measure in ['mean', 'std']:
-                measure_lst.append(measure + '_' + extract_fname(self.fname_ref)[1])
+                measure_lst.append(f'{measure}_{extract_fname(self.fname_ref)[1]}')
         measure_dct = {}
         for column in measure_lst:
             measure_dct[column] = None
@@ -198,8 +203,8 @@ class AnalyzeLesion:
         self.distrib_matrix_dct = {}
 
         # output names
-        self.pickle_name = extract_fname(self.fname_mask)[1] + '_analysis.pkl'
-        self.excel_name = extract_fname(self.fname_mask)[1] + '_analysis.xlsx'
+        self.pickle_name = f'{extract_fname(self.fname_mask)[1]}_analysis.pkl'
+        self.excel_name = f'{extract_fname(self.fname_mask)[1]}_analysis.xlsx'
 
     def analyze(self):
         self.ifolder2tmp()
@@ -240,7 +245,7 @@ class AnalyzeLesion:
         printv('\nSave results files...', self.verbose, 'normal')
         printv('\n... measures saved in the files:', self.verbose, 'normal')
         for file_ in [self.fname_label, self.excel_name, self.pickle_name]:
-            printv('\n  - ' + os.path.join(self.path_ofolder, file_), self.verbose, 'normal')
+            printv(f'\n  - {os.path.join(self.path_ofolder, file_)}', self.verbose, 'normal')
             copy(os.path.join(self.tmp_dir, file_), os.path.join(self.path_ofolder, file_))
 
     def pack_measures(self):
@@ -278,10 +283,10 @@ class AnalyzeLesion:
         total_length = np.round(np.sum(self.measure_pd['length [mm]']), 2)
         # Take max width across lesions --> max
         max_width = np.round(np.max(self.measure_pd['width [mm]']), 2)
-        printv('\nTotal volume = ' + str(total_volume) + ' mm^3', self.verbose, 'info')
-        printv('Total length = ' + str(total_length) + ' mm', self.verbose, 'info')
-        printv('Max width = ' + str(max_width) + ' mm', self.verbose, 'info')
-        printv('Lesion count = ' + str(self.lesion_count), self.verbose, 'info')
+        printv(f'\nTotal volume = {total_volume} mm^3', self.verbose, 'info')
+        printv(f'Total length = {total_length} mm', self.verbose, 'info')
+        printv(f'Max width = {max_width} mm', self.verbose, 'info')
+        printv(f'Lesion count = {self.lesion_count}', self.verbose, 'info')
 
     def reorient(self):
         if not self.orientation == 'RPI':
@@ -297,8 +302,8 @@ class AnalyzeLesion:
             mean_cur, std_cur = np.mean(im_ref[np.where(im_label_data_cur)]), np.std(im_ref[np.where(im_label_data_cur)])
 
             label_idx = self.measure_pd[self.measure_pd.label == lesion_label].index
-            self.measure_pd.loc[label_idx, 'mean_' + extract_fname(self.fname_ref)[1]] = mean_cur
-            self.measure_pd.loc[label_idx, 'std_' + extract_fname(self.fname_ref)[1]] = std_cur
+            self.measure_pd.loc[label_idx, f'mean_{extract_fname(self.fname_ref)[1]}'] = mean_cur
+            self.measure_pd.loc[label_idx, f'std_{extract_fname(self.fname_ref)[1]}'] = std_cur
             file_ref = extract_fname(self.fname_ref)[1]
             printv(
                 f'Mean+/-std of lesion #{lesion_label} in {file_ref} file: {mean_cur:.2f}+/-{std_cur:.2f}',
@@ -349,7 +354,7 @@ class AnalyzeLesion:
 
         # Save the maximum axial damage ratio
         self.measure_pd.loc[idx, 'max_axial_damage_ratio []'] = maximum_axial_damage_ratio
-        printv('  Maximum axial damage ratio: ' + str(np.round(maximum_axial_damage_ratio, 2)),
+        printv(f'  Maximum axial damage ratio: {np.round(maximum_axial_damage_ratio, 2)}',
                self.verbose, type='info')
 
     def _compute_tissue_bridge_ratio(self, idx):
@@ -571,7 +576,7 @@ class AnalyzeLesion:
                                             for slice in sagittal_lesion_slices]
             # Reverse ordering
             sagittal_lesion_slices_print = sagittal_lesion_slices_print[::-1]
-            printv('  Slices with lesion: ' + str(sagittal_lesion_slices_print), self.verbose, type='info')
+            printv(f'  Slices with lesion: {sagittal_lesion_slices_print}', self.verbose, type='info')
 
         # --------------------------------------
         # Compute tissue bridges for each sagittal slice containing the lesion
@@ -693,7 +698,7 @@ class AnalyzeLesion:
         """
         length_cur = np.sum([p_lst[2] / np.cos(self.angles_3d[zz]) for zz in np.unique(np.where(im_data)[2])])  # [2] -> SI
         self.measure_pd.loc[idx, 'length [mm]'] = length_cur
-        printv('  (S-I) length: ' + str(np.round(length_cur, 2)) + ' mm', self.verbose, type='info')
+        printv(f'  (S-I) length: {np.round(length_cur, 2)} mm', self.verbose, type='info')
 
     def _measure_width(self, im_data, p_lst, idx):
         """
@@ -791,7 +796,7 @@ class AnalyzeLesion:
         area_lst = [np.sum(im_data[:, :, zz]) * np.cos(self.angles_3d[zz]) * p_lst[0] * p_lst[1] for zz in range(im_data.shape[2])]
         diameter_cur = 2 * np.sqrt(max(area_lst) / np.pi)
         self.measure_pd.loc[idx, 'max_equivalent_diameter [mm]'] = diameter_cur
-        printv('  Max. equivalent diameter: ' + str(np.round(diameter_cur, 2)) + ' mm', self.verbose, type='info')
+        printv(f'  Max. equivalent diameter: {np.round(diameter_cur, 2)} mm', self.verbose, type='info')
 
     def ___pve_weighted_avg(self, im_mask_data, im_atlas_data):
         return im_mask_data * im_atlas_data
@@ -856,7 +861,7 @@ class AnalyzeLesion:
 
     def _measure_eachLesion_distribution(self, lesion_id, atlas_data, im_vert, im_lesion, p_lst):
         """the lesion is the reference (the percentage of the lesion in each region)"""
-        sheet_name = 'lesion#' + str(lesion_id) + '_distribution'
+        sheet_name = f'lesion#{lesion_id}_distribution'
 
         # Create the initial DataFrame with row column
         df_data = pd.DataFrame.from_dict({'row': [str(r) for r in self.rows.keys()]})
@@ -867,7 +872,7 @@ class AnalyzeLesion:
 
         # initialized to 0 for each vertebral level and each PAM50 tract
         for tract_id in atlas_data:
-            self.distrib_matrix_dct[sheet_name]['PAM50_' + str(tract_id).zfill(2)] = [0] * len(self.rows)
+            self.distrib_matrix_dct[sheet_name][f'PAM50_{tract_id:02}'] = [0] * len(self.rows)
 
         vol_mask_tot = 0.0  # vol tot of this lesion through the vertebral levels and PAM50 tracts
         im_vert_and_lesion = im_vert * im_lesion  # to check which vertebral levels have lesions
@@ -881,7 +886,7 @@ class AnalyzeLesion:
                                                              im_atlas_roi_data=atlas_data[tract_id],
                                                              p_lst=p_lst,
                                                              indices_to_keep=indices_to_keep)
-                    self.distrib_matrix_dct[sheet_name].loc[idx, 'PAM50_' + str(tract_id).zfill(2)] = res_lst[0]
+                    self.distrib_matrix_dct[sheet_name].loc[idx, f'PAM50_{tract_id:02}'] = res_lst[0]
                     vol_mask_tot += res_lst[0]
 
         # convert the volume values in distrib_matrix_dct to percentage values
@@ -889,8 +894,8 @@ class AnalyzeLesion:
                                     desc="  Converting volume values into percentage values"):
             idx = self.distrib_matrix_dct[sheet_name][self.distrib_matrix_dct[sheet_name].row == str(row)].index
             for tract_id in atlas_data:
-                val = self.distrib_matrix_dct[sheet_name].loc[idx, 'PAM50_' + str(tract_id).zfill(2)].values[0]
-                self.distrib_matrix_dct[sheet_name].loc[idx, 'PAM50_' + str(tract_id).zfill(2)] = val * 100.0 / vol_mask_tot
+                val = self.distrib_matrix_dct[sheet_name].loc[idx, f'PAM50_{tract_id:02}'].values[0]
+                self.distrib_matrix_dct[sheet_name].loc[idx, f'PAM50_{tract_id:02}'] = val * 100.0 / vol_mask_tot
 
         # drop the non-numeric index columns
         df_tracts = self.distrib_matrix_dct[sheet_name].drop(columns=['row', 'vert_level'], errors='ignore')
@@ -960,7 +965,7 @@ class AnalyzeLesion:
 
                 # save involvement in each PAM50 tracts
                 for tract_id in atlas_data:
-                    self.distrib_matrix_dct[sheet_name].loc[idx, 'PAM50_' + str(tract_id).zfill(2)] = res_perTract_dct[tract_id][0] * 100.0 / res_perTract_dct[tract_id][1]
+                    self.distrib_matrix_dct[sheet_name].loc[idx, f'PAM50_{tract_id:02}'] = res_perTract_dct[tract_id][0] * 100.0 / res_perTract_dct[tract_id][1]
 
     def measure(self):
         im_lesion = Image(self.fname_label)
@@ -1025,7 +1030,7 @@ class AnalyzeLesion:
         # iteration across each lesion to measure statistics
         for lesion_label in label_lst:
             im_lesion_data_cur = np.copy(im_lesion_data == lesion_label)
-            printv('\nMeasures on lesion #' + str(lesion_label) + '...', self.verbose, 'normal')
+            printv(f'\nMeasures on lesion #{lesion_label}...', self.verbose, 'normal')
 
             label_idx = self.measure_pd[self.measure_pd.label == lesion_label].index
             # For the lesion length and diameter, we need the spinal cord segmentation for angle correction.
@@ -1197,8 +1202,10 @@ class AnalyzeLesion:
             z_center = int(round(center_of_mass(im_lesion_data_largest_lesion)[2]))   # [2] --> S-I
             # 2. Define analysis range (2 axial slices above and below the lesion center of mass) around lesion center
             # mass in S-I axis (z direction)
+            # 5 slices in total (or fewer if range extends image bounds)
             # TODO: try other number of slices above and below the lesion center of mass
-            z_range = np.arange(z_center - 2, z_center + 3)   # 5 slices in total
+            z_range = np.arange(max(z_center - 2, 0),
+                                min(z_center + 3, im_sc_data.shape[2]))
             # 3: For each of these slices, compute the spinal cord center of mass in the x-axis (R-L direction)
             stored_x_coordinates = [
                 center_of_mass(spinal_cord_slice)[0]  # [0] --> R-L
@@ -1431,12 +1438,12 @@ def main(argv: Sequence[str]):
     # TODO: check this in the parser
     # if not os.path.isdir(path_template) and os.path.exists(path_template):
     #     path_template = None
-    #     printv("ERROR output directory %s is not a valid directory" % path_template, 1, 'error')
+    #     printv(f"ERROR output directory {path_template} is not a valid directory", 1, 'error')
 
     # Output Folder
     path_results = os.path.expanduser(arguments.ofolder)        # expand '~' to user home directory
     # if not os.path.isdir(path_results) and os.path.exists(path_results):
-    #     printv("ERROR output directory %s is not a valid directory" % path_results, 1, 'error')
+    #     printv(f"ERROR output directory {path_results} is not a valid directory", 1, 'error')
     if not os.path.exists(path_results):
         os.makedirs(path_results)
 
@@ -1471,6 +1478,7 @@ def main(argv: Sequence[str]):
                 path_qc=arguments.qc,
                 dataset=arguments.qc_dataset,
                 subject=arguments.qc_subject,
+                contrast=arguments.qc_contrast,
             )
         else:
             printv("WARNING: Spinal cord segmentation not provided, skipping QC. "

@@ -148,8 +148,8 @@ def main(argv: Sequence[str]):
 
     # Display scatter plot
     fig = mpl_plt.figure(facecolor='white', figsize=(9, 8))
-    fig.suptitle('Number of b=0: ' + str(n_b0) + ', Number of b!=0: ' + str(n_dir - n_b0) +
-                 ', Number of effective directions (without duplicates): ' + str(n_dir_eff))
+    fig.suptitle(f'Number of b=0: {n_b0}, Number of b!=0: {n_dir - n_b0}, '
+                 f'Number of effective directions (without duplicates): {n_dir_eff}')
 
     # Display three views
     plot_2dscatter(fig_handle=fig, subplot=221, x=x, y=y, xlabel='X', ylabel='Y', bvals=bvals, colors=shell_colors)

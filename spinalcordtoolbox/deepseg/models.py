@@ -13,6 +13,7 @@ import logging
 import textwrap
 import shutil
 import glob
+import re
 from pathlib import Path
 from importlib.metadata import metadata
 
@@ -127,15 +128,17 @@ MODELS = {
     #       - Models do not have a `.json` sidecar file, since they were not developed with ivadomed
     #       - So, threshold value is stored here, within the model dict
     #       - Binarization is applied within SCT code
+    # v4 model: trained on sc-crop cropped volumes.
     "model_seg_sc_contrast_agnostic_nnunet": {
         "url": [
-            "https://github.com/sct-pipeline/contrast-agnostic-softseg-spinalcord/releases/download/v3.0/model_contrast_agnostic_20250123.zip"
+            "https://github.com/sct-pipeline/contrast-agnostic-softseg-spinalcord/releases/download/v4.0/model_contrast_agnostic_20260628.zip"
         ],
         "description": "Spinal cord segmentation agnostic to MRI contrasts",
         "contrasts": ["any"],
         "framework": "nnunetv2",
         "thr": None,  # We're now using an nnUNet model, which does not need a threshold
         "default": True,
+        "cropped_image": True,
     },
     "model_seg_sci_multiclass_sc_lesion_nnunet": {
         "url": [
@@ -199,17 +202,18 @@ MODELS = {
     },
     "model_seg_ms_lesion": {
          "url": {
-            "model_fold0": ["https://github.com/ivadomed/ms-lesion-agnostic/releases/download/r20250909/model_fold0.zip"],
-            "model_fold1": ["https://github.com/ivadomed/ms-lesion-agnostic/releases/download/r20250909/model_fold1.zip"],
-            "model_fold2": ["https://github.com/ivadomed/ms-lesion-agnostic/releases/download/r20250909/model_fold2.zip"],
-            "model_fold3": ["https://github.com/ivadomed/ms-lesion-agnostic/releases/download/r20250909/model_fold3.zip"],
-            "model_fold4": ["https://github.com/ivadomed/ms-lesion-agnostic/releases/download/r20250909/model_fold4.zip"]
+            "model_fold0": ["https://github.com/ivadomed/seg-sc-ms-lesion-multicontrast/releases/download/r20260703/model_fold0.zip"],
+            "model_fold1": ["https://github.com/ivadomed/seg-sc-ms-lesion-multicontrast/releases/download/r20260703/model_fold1.zip"],
+            "model_fold2": ["https://github.com/ivadomed/seg-sc-ms-lesion-multicontrast/releases/download/r20260703/model_fold2.zip"],
+            "model_fold3": ["https://github.com/ivadomed/seg-sc-ms-lesion-multicontrast/releases/download/r20260703/model_fold3.zip"],
+            "model_fold4": ["https://github.com/ivadomed/seg-sc-ms-lesion-multicontrast/releases/download/r20260703/model_fold4.zip"]
          },
          "description": "Segmentation of spinal cord MS lesions",
          "contrasts": ["any"],
          "framework": "nnunetv2",
          "thr": None,  # Images are already binarized
          "default": False,
+         "cropped_image": True,
      },
     "model_seg_canal": {
         "url": [
@@ -225,8 +229,11 @@ MODELS = {
          # NB: Rather than hardcoding the URLs ourselves, use the URLs from the totalspineseg package.
          # This means that when the totalspineseg package is updated, the URLs will be too, thus triggering
          # a re-installation of the model URLs
-         "url": dict([meta.split(', ') for meta in metadata('totalspineseg').get_all('Project-URL')
-                      if meta.startswith('Dataset')]),
+         "url": {
+             k: re.findall(r'https?://\S+', v)
+             for k, v in (meta.split(', ', 1) for meta in metadata('totalspineseg').get_all('Project-URL'))
+             if k.startswith('Dataset')
+         },
          "description": "Instance segmentation of vertebrae, intervertebral discs (IVDs), spinal cord, and spinal canal on multi-contrasts MRI scans.",
          "contrasts": ["any"],
          "framework": "nnunetv2",
@@ -243,6 +250,36 @@ MODELS = {
         "thr": None,
         "default": False,
      },
+    "model1_seg_brachialplexus-drg_human_stir": {
+         "url": {
+            "model1_fold0": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold0_r20260723.zip"],
+            "model1_fold1": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold1_r20260723.zip"],
+            "model1_fold2": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold2_r20260723.zip"],
+            "model1_fold3": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold3_r20260723.zip"],
+            "model1_fold4": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold4_r20260723.zip"],
+         },
+         "description": "Segmentation of the brachial plexus and dorsal root ganglia on human STIR MRI",
+         "contrasts": ["STIR"],
+         "framework": "nnunetv2",
+         "thr": None,  # unsure
+         "default": False,
+         "cropped_image": False,
+     },
+    "model2_seg_brachialplexus-drg_human_stir": {
+        "url": {
+            "model2_fold0": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold0_r20260723.zip"],
+            "model2_fold1": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold1_r20260723.zip"],
+            "model2_fold2": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold2_r20260723.zip"],
+            "model2_fold3": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold3_r20260723.zip"],
+            "model2_fold4": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold4_r20260723.zip"]
+        },
+        "description": "Segmentation of the brachial plexus and dorsal root ganglia on human STIR MRI",
+        "contrasts": ["STIR"],
+        "framework": "nnunetv2",
+        "thr": None,  # unsure
+        "default": False,
+        "cropped_image": False,
+    },
 }
 
 
@@ -315,7 +352,7 @@ TASKS = {
                              '(https://github.com/ivadomed/findcord_tumor).',
          'url': 'https://github.com/ivadomed/model_seg_sctumor-edema-cavity_t2-t1_unet3d-multichannel',
          'models': ['findcord_tumor', 'model_seg_sctumor-edema-cavity_t2-t1_unet3d-multichannel'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @article{LEMAY2021102766,
                       title={Automatic multiclass intramedullary spinal cord tumor segmentation on MRI with deep learning},
@@ -325,7 +362,7 @@ TASKS = {
                       year-2021},
                       issn-2213-1582},
                       doi-https://doi.org/10.1016/j.nicl.2021.102766},
-                      url-https://www.sciencedirect.com/science/article/pii/S2213158221002102},
+                      url-https://doi.org/10.1016/j.nicl.2021.102766},
                       author-Andreanne Lemay and Charley Gros and Zhizheng Zhuo and Jie Zhang and Yunyun Duan and Julien Cohen-Adad and Yaou Liu},
                       keywords-Deep learning, Automatic segmentation, Spinal cord tumor, MRI, Multiclass, CNN}
              }
@@ -360,7 +397,7 @@ TASKS = {
                              'external multicentric database. For more information, see the following URL.',
          'url': 'https://github.com/ivadomed/model_seg_gm-wm_t2star_7t_unet3d-multiclass',
          'models': ['model_7t_multiclass_gm_sc_unet2d'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @misc{medina20212d,
                    title={2D Multi-Class Model for Gray and White Matter Segmentation of the Cervical Spinal Cord at 7T},
@@ -396,7 +433,7 @@ TASKS = {
                              'other contrasts that are close visual matches may also work well with this model.',
          'url': 'https://github.com/sct-pipeline/contrast-agnostic-softseg-spinalcord/',
          'models': ['model_seg_sc_contrast_agnostic_nnunet'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @article{bedard2025towards,
                   title={Towards contrast-agnostic soft segmentation of the spinal cord},
@@ -420,7 +457,7 @@ TASKS = {
                              'orientations, as well as multiple scanner manufacturers and field strengths.',
          'url': 'https://github.com/ivadomed/model_seg_sci',
          'models': ['model_seg_sci_multiclass_sc_lesion_nnunet'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @InProceedings{10.1007/978-3-031-82007-6_19,
                             author="Karthik, Enamundram Naga and Valo{\v{s}}ek, Jan and Farner, Lynn and Pfyffer, Dario and Schading-Sassenhausen, Simon and Lebret, Anna and David, Gergely and Smith, Andrew C. and Weber II, Kenneth A. and Seif, Maryam and Freund, Patrick and Cohen-Adad, Julien",
@@ -448,16 +485,16 @@ TASKS = {
                              'subject, 45 images).',
          'url': 'https://github.com/ivadomed/model-spinal-rootlets',
          'models': ['model_seg_spinal_rootlets_nnunet'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @misc{krejci2025rootletsegdeeplearningmethod,
-                   title={RootletSeg: Deep learning method for spinal rootlets segmentation across MRI contrasts}, 
+                   title={RootletSeg: Deep learning method for spinal rootlets segmentation across MRI contrasts},
                    author={Katerina Krejci and Jiri Chmelik and Sandrine Bédard and Falk Eippert and Ulrike Horn and Virginie Callot and Julien Cohen-Adad and Jan Valosek},
                    year={2025},
                    eprint={2509.16255},
                    archivePrefix={arXiv},
                    primaryClass={q-bio.TO},
-                   url={https://arxiv.org/abs/2509.16255}, 
+                   url={https://doi.org/10.48550/arXiv.2509.16255},
              }
              ```"""),  # noqa E501 (line too long)
          },
@@ -472,7 +509,7 @@ TASKS = {
                              'the University of Zurich.',
          'url': 'https://github.com/ivadomed/model_seg_mouse-sc_wm-gm_t1',
          'models': ['model_seg_gm_wm_mouse_nnunet'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @software{cohen_adad_2024_10819207,
                        author={Cohen-Adad, Julien},
@@ -497,7 +534,7 @@ TASKS = {
                              'dataset has healthy control subjects. The model has been trained in a human-in-the-loop active learning fashion.',
          'url': 'https://github.com/sct-pipeline/fmri-segmentation',
          'models': ['model_seg_sc_epi_nnunet'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```
              @article{Banerjee2025.01.07.631402,
                       author={Banerjee, Rohan and Kaptan, Merve and Tinnermann, Alexandra and Khatibi, Ali and Dabbagh, Alice and B{\"u}chel, Christian and K{\"u}ndig, Christian W. and Law, Christine S.W. and Pfyffer, Dario and Lythgoe, David J. and Tsivaka, Dimitra and Van De Ville, Dimitri and Eippert, Falk and Muhammad, Fauziyya and Glover, Gary H. and David, Gergely and Haynes, Grace and Haaker, Jan and Brooks, Jonathan C. W. and Finsterbusch, J{\"u}rgen and Martucci, Katherine T. and Hemmerling, Kimberly J. and Mobarak-Abadi, Mahdi and Hoggarth, Mark A. and Howard, Matthew A. and Bright, Molly G. and Kinany, Nawal and Kowalczyk, Olivia S. and Freund, Patrick and Barry, Robert L. and Mackey, Sean and Vahdat, Shahabeddin and Schading, Simon and McMahon, Stephen B. and Parish, Todd and Marchand-Pauvert, V{\'e}ronique and Chen, Yufen and Smith, Zachary A. and Weber, Kenneth A. and De Leener, Benjamin and Cohen-Adad, Julien},
@@ -506,9 +543,9 @@ TASKS = {
                       year{2025},
                       doi{10.1101/2025.01.07.631402},
                       publisher{Cold Spring Harbor Laboratory},
-                      abstract{Functional magnetic resonance imaging (fMRI) of the spinal cord is relevant for studying sensation, movement, and autonomic function. Preprocessing of spinal cord fMRI data involves segmentation of the spinal cord on gradient-echo echo planar imaging (EPI) images. Current automated segmentation methods do not work well on these data, due to the low spatial resolution, susceptibility artifacts causing distortions and signal drop-out, ghosting, and motion-related artifacts. Consequently, this segmentation task demands a considerable amount of manual effort which takes time and is prone to user bias. In this work, we (i) gathered a multi-center dataset of spinal cord gradient-echo EPI with ground-truth segmentations and shared it on OpenNeuro https://openneuro.org/datasets/ds005143/versions/1.3.0, and (ii) developed a deep learning-based model, EPISeg, for the automatic segmentation of the spinal cord on gradient-echo EPI data. We observe a significant improvement in terms of segmentation quality compared to other available spinal cord segmentation models. Our model is resilient to different acquisition protocols as well as commonly observed artifacts in fMRI data. The training code is available at https://github.com/sct-pipeline/fmri-segmentation/, and the model has been integrated into the Spinal Cord Toolbox as a command-line tool.Competing Interest StatementSince January 2024, Dr. Barry has been employed by the National Institute of Biomedical Imaging and Bioengineering at the National Institutes of Health. This work was co-authored by Robert Barry in his personal capacity. The opinions expressed in this study are his own and do not necessarily reflect the views of the National Institutes of Health, the Department of Health and Human Services, or the United States government. The other authors declared no potential conflicts of interest with respect to the research, authorship, and/or publication of this article.},
-                      URL{https://www.biorxiv.org/content/early/2025/01/27/2025.01.07.631402},
-                      eprint{https://www.biorxiv.org/content/early/2025/01/27/2025.01.07.631402.full.pdf},
+                      abstract{Functional magnetic resonance imaging (fMRI) of the spinal cord is relevant for studying sensation, movement, and autonomic function. Preprocessing of spinal cord fMRI data involves segmentation of the spinal cord on gradient-echo echo planar imaging (EPI) images. Current automated segmentation methods do not work well on these data, due to the low spatial resolution, susceptibility artifacts causing distortions and signal drop-out, ghosting, and motion-related artifacts. Consequently, this segmentation task demands a considerable amount of manual effort which takes time and is prone to user bias. In this work, we (i) gathered a multi-center dataset of spinal cord gradient-echo EPI with ground-truth segmentations and shared it on OpenNeuro (https://doi.org/10.18112/openneuro.ds005143.v1.3.0), and (ii) developed a deep learning-based model, EPISeg, for the automatic segmentation of the spinal cord on gradient-echo EPI data. We observe a significant improvement in terms of segmentation quality compared to other available spinal cord segmentation models. Our model is resilient to different acquisition protocols as well as commonly observed artifacts in fMRI data. The training code is available at https://github.com/sct-pipeline/fmri-segmentation/, and the model has been integrated into the Spinal Cord Toolbox as a command-line tool.Competing Interest StatementSince January 2024, Dr. Barry has been employed by the National Institute of Biomedical Imaging and Bioengineering at the National Institutes of Health. This work was co-authored by Robert Barry in his personal capacity. The opinions expressed in this study are his own and do not necessarily reflect the views of the National Institutes of Health, the Department of Health and Human Services, or the United States government. The other authors declared no potential conflicts of interest with respect to the research, authorship, and/or publication of this article.},
+                      URL{https://doi.org/10.1101/2025.01.07.631402},
+                      eprint{https://doi.org/10.1101/2025.01.07.631402},
                       journal{bioRxiv}
              }
              ```"""),  # noqa E501 (line too long)
@@ -524,10 +561,10 @@ TASKS = {
                              f'Aix-Marseille University, Marseille, France). {CROP_MESSAGE}',
          'url': 'https://github.com/ivadomed/model_seg_ms_mp2rage',
          'models': ['model_seg_ms_lesion_mp2rage'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
              @inproceedings{laines2024automatic,
-                 author={Laines Medina, N. and Mchinda, S. and Testud, B. and Demorti{\\`e}re, S. and Chen, M. and Granziera, G. and Reich, D. and Tsagkas, C. and Cohen-Adad, 
+                 author={Laines Medina, N. and Mchinda, S. and Testud, B. and Demorti{\`e}re, S. and Chen, M. and Granziera, G. and Reich, D. and Tsagkas, C. and Cohen-Adad,
                  J. and Callot, V.},
                  title={Automatic Multiple Sclerosis Lesion Segmentation in the Spinal Cord on 3T and 7T MP2RAGE Images},
                  booktitle={Proceedings of the 40th Annual Scientific Meeting of the ESMRMB},
@@ -550,7 +587,7 @@ TASKS = {
                              '(± standard deviation) of 1.10±1.13 x 0.51±0.24 x 3.27±1.95 mm³ reported in “RPI-” orientation ',
          'url': 'https://github.com/ivadomed/ms-lesion-agnostic',
          'models': ['model_seg_ms_lesion'],
-         'citation': textwrap.dedent("""
+         'citation': textwrap.dedent(r"""
              ```bibtex
             @article{doi:10.1177/13524585261427333,
                 author = {Pierre-Louis Benveniste and Laurent Létourneau-Guillon and David Araujo and Lydia Chougar and Dumitru Fetco and Masaaki Hori and Kouhei Kamiya and Steven Messina and Charidimos Tsagkas and Bertrand Audoin and Rohit Bakshi and Elise Bannier and Daniel Blezek and Jean-Christophe Brisset and Virginie Callot and Erik Charlson and Michelle Chen and Olga Ciccarelli and Sarah Demortière and Gilles Edan and Massimo Filippi and Tobias Granberg and Cristina Granziera and Christopher C. Hemond and B. Mark Keegan and Anne Kerbrat and Jan Kirschke and Shannon Kolind and Pierre Labauge and Lisa Eunyoung Lee and Yaou Liu and Caterina Mainero and Julian McGinnis and Nilser Laines Medina and Mark Mühlau and Govind Nair and Kristin P. O’Grady and Jiwon Oh and Russell Ouellette and Alexandre Prat and Daniel S. Reich and Maria A. Rocca and Timothy M. Shepherd and Seth A. Smith and Leszek Stawiarz and Jason Talbott and Roger Tam and Shahamat Tauhid and Anthony Traboulsee and Constantina Andrada Treaba and Paola Valsasina and Zachary Vavasour and Marios Yiannakas and Hervé Lombaert and Julien Cohen-Adad},
@@ -621,6 +658,22 @@ TASKS = {
          'group': 'gray_matter',
          'priority': 1  # Push gray matter to the top of its eponymous category
          },
+    'brachial_plexus':
+        {'description': 'Segmentation of brachial plexus nerve roots and dorsal root ganglia on STIR MRI',
+         'long_description': 'This segmentation model for the bilateral C5-C8 brachial plexus nerve roots and dorsal '
+                             'root ganglia (DRG) uses a two-stage cascade of 3D U-Nets (ResEncUNet-M), trained with the '
+                             'nnUNetV2 framework. Stage 1 produces a coarse 3-class segmentation (background, DRG, '
+                             'plexus) that localizes the target region. Stage 2 takes the image and the Stage 1 '
+                             'prediction as input, and outputs a single segmentation image containing 16 classes: '
+                             'DRG C5-C8 right (1-4), DRG C5-C8 left (5-8), plexus C5-C8 right (9-12), and plexus C5-C8 '
+                             'left (13-16). Left/right merged structures are split in post-processing. Training data '
+                             'consisted of approximately 400 coronal T2 SPACE STIR scans from three sites (Oxford, '
+                             'Brighton, Stanford), acquired on Siemens and GE scanners. Five-fold cross-validation gave '
+                             'a median test Dice of 0.90.',
+         'url': 'https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir',
+         'models': ['model1_seg_brachialplexus-drg_human_stir', 'model2_seg_brachialplexus-drg_human_stir'],
+         'citation': None
+         },
 }
 
 
@@ -648,27 +701,143 @@ def folder(name_model):
     return os.path.join(__deepseg_dir__, name_model)
 
 
+# sc_crop.detect() padding kwargs; see sc_crop.crop.detect() for the meaning of each face.
+CROP_PAD_KEYS = ('pad_superior', 'pad_inferior', 'pad_left', 'pad_right', 'pad_anterior', 'pad_posterior')
+
+
+def _read_source_json(path_model):
+    """
+    Read an installed model's provenance file, if present.
+
+    :param path_model: str: Path to the installed model folder.
+    :return: dict: parsed `source.json` content, or {} if missing.
+    """
+    source_path = os.path.join(path_model, "source.json")
+    if not os.path.isfile(source_path):
+        return {}
+    with open(source_path, "r") as fp:
+        return json.load(fp)
+
+
+def load_crop_metadata(name_model, path_model):
+    """
+    Determine an installed model's sc-crop padding, if it uses the sc-crop pipeline at all.
+
+    `MODELS[name_model]['cropped_image']` says whether this model is *expected* to use
+    sc-crop -- used before the model is even installed (e.g. to decide whether to expose
+    `-box-*` at all). The actual decision, and the padding, come from whether a
+    `crop_metadata.json` file is present at the root of the model's release .zip -- so both
+    travel with the actual artifact on disk, rather than being hardcoded here (which would be
+    wrong for a model installed via `-custom-url`, since that can point to a differently-trained
+    artifact). A release only ever bundles this file for a model that actually uses sc-crop, so
+    its mere presence is the signal -- there's no separate flag inside the file for this.
+
+    If the model isn't expected to use sc-crop, nothing else is checked. If it is, but no
+    `crop_metadata.json` is found:
+    - for an official install (no `-custom-url`), this means the release is missing a file it
+      should have -- raise, since silently skipping cropping would produce out-of-distribution
+      predictions with the model none the wiser.
+    - for a `-custom-url` install, the artifact may simply not be a cropped model at all (e.g.
+      an older release); treat it as not using sc-crop instead of raising.
+
+    Padding is required to be fully specified in `crop_metadata.json` whenever the model does
+    use sc-crop -- callers must not fall back to `sc_crop.detect()`'s own default padding, since
+    those defaults can change between `sc-crop` versions, silently shifting the crop a model was
+    actually trained on.
+
+    :param name_model: str: Name of model (key into MODELS).
+    :param path_model: str: Path to the installed model folder.
+    :return: dict: `sc_crop.detect()` padding kwargs, one entry per key in `CROP_PAD_KEYS`, or
+        `{}` if this model doesn't use the sc-crop pipeline. Callers should treat a non-empty
+        return as "sc-crop is active" (i.e. use `bool(load_crop_metadata(...))`).
+    """
+    if not MODELS.get(name_model, {}).get('cropped_image', False):
+        return {}
+
+    path_json = os.path.join(path_model, "crop_metadata.json")
+    if not os.path.isfile(path_json):
+        is_custom = _read_source_json(path_model).get('custom', False)
+        if not is_custom:
+            raise RuntimeError(
+                f"Model '{name_model}' should use the sc-crop pipeline, but no "
+                f"crop_metadata.json was found in its installed folder ('{path_model}'). "
+                f"The release is likely missing this file -- reinstall with `-install`, "
+                f"or check the model's release assets."
+            )
+        return {}
+
+    with open(path_json, "r") as fp:
+        crop_metadata = json.load(fp)
+
+    missing_keys = [key for key in CROP_PAD_KEYS if key not in crop_metadata]
+    if missing_keys:
+        raise RuntimeError(
+            f"Model '{name_model}'s crop_metadata.json ('{path_json}') is missing padding "
+            f"key(s) {missing_keys} -- all of {list(CROP_PAD_KEYS)} must be specified "
+            f"explicitly, so cropping doesn't silently depend on sc_crop's own defaults."
+        )
+    return {key: crop_metadata[key] for key in CROP_PAD_KEYS}
+
+
+def is_list_of_urls(url_field):
+    """Check if an object is a list of URLs."""
+    return isinstance(url_field, list) and all(
+        isinstance(url, str) and url.startswith("http")
+        for url in url_field
+    )
+
+
+def is_dict_of_lists_of_urls(url_field):
+    """Check if an object is a dict of lists of URLs."""
+    return isinstance(url_field, dict) and all(
+        isinstance(k, str) and is_list_of_urls(v)
+        for k, v in url_field.items()
+    )
+
+
 def install_model(name_model, custom_url=None):
     """
     Download and install specified model under SCT installation dir.
 
     :param name: str: Name of model.
+    :param custom_url: list of URLs, either 1 for single-model / single-mirror case or one per fold/seed
+        (for models made up of several folds/seeds, e.g. `model_seg_ms_lesion`).
     :return: None
     """
-    logger.info("\nINSTALLING MODEL: {}".format(name_model))
-    url_field = MODELS[name_model]['url'] if not custom_url else [custom_url]  # [] -> mimic a list of mirror URLs
+    logger.info(f"\nINSTALLING MODEL: {name_model}")
+    url_field = default_url = MODELS[name_model]['url']
+    framework = MODELS[name_model]["framework"]
+    if custom_url is not None:
+        if not isinstance(custom_url, list):
+            raise ValueError(f"Expected a list of model URLs for custom_url, got: {custom_url}")
+        # Single-fold/seed model
+        elif len(custom_url) == 1:
+            url_field = custom_url
+        # Multiple URLs passed, see how many are expected
+        else:
+            n_urls_expected = len(default_url) if isinstance(default_url, dict) else 1
+            # Multi-fold/multi-seed model: one custom URL is expected per fold, in the same order as the default URLs
+            if len(custom_url) == n_urls_expected:
+                url_field = {seed_name: [url] for seed_name, url in zip(default_url.keys(), custom_url)}
+            # Multi-fold model with the wrong number of URLs passed, or
+            # single-fold model with multiple URLs passed
+            else:
+                raise ValueError(
+                    f"Expected {n_urls_expected} custom URL(s) for model '{name_model}' "
+                    f"but got {len(custom_url)} instead.")
     # List of mirror URLs corresponding to a single model
-    if isinstance(url_field, list):
+    if is_list_of_urls(url_field):
         model_urls = url_field
         # Make sure to preserve the internal folder structure for nnUNet-based models (to allow re-use with 3D Slicer)
-        urls_used = download.install_data(model_urls, folder(name_model), dirs_to_preserve=("nnUNetTrainer",))
+        urls_used = [download.install_data(model_urls, folder(name_model), dirs_to_preserve=("nnUNetTrainer",))]
     # Dict of lists, with each list corresponding to a different model seed for ensembling
-    else:
-        if not isinstance(url_field, dict):
-            raise ValueError("Invalid url field in MODELS")
+    elif is_dict_of_lists_of_urls(url_field):
         # totalspineseg handles data downloading itself, so just pass the urls along
         if name_model in TASKS['spine']['models']:
-            tss_init.init_inference(data_path=Path(folder(name_model)), quiet=False, dict_urls=url_field,
+            # Totalspineseg expects exactly 1 URL string per model (rather than a list of mirrors)
+            dict_urls = {seed_name: (urls[0] if isinstance(urls, list) else urls)
+                         for seed_name, urls in url_field.items()}
+            tss_init.init_inference(data_path=Path(folder(name_model)), quiet=False, dict_urls=dict_urls,
                                     store_export=False)  # Avoid having duplicate .zip files stored on disk
             urls_used = url_field
             # For totalspineseg, for now we need to copy its custom trainer to the `nnunetv2` folder
@@ -678,10 +847,9 @@ def install_model(name_model, custom_url=None):
             auglab_add_trainer.add_trainer(trainer_name="nnUNetTrainerDAExt", overwrite=True)
         else:
             urls_used = {}
-            for seed_name, model_urls in url_field.items():
-                # For the ms_lesion model, we need to regroup the folds together
-                # For lesion_ms, we can extract all the folds to the same `nnunetTrainer` directory
-                if name_model == "model_seg_ms_lesion":
+            for i, (seed_name, model_urls) in enumerate(url_field.items()):
+                # For nnunetv2 multifold models, we need to regroup the folds together into one `nnUNetTrainer` directory
+                if framework == "nnunetv2":
                     target_directory = folder(name_model)
                     dirs_to_preserve = ("nnUNetTrainer",)
                 # For other multi-seed models, create subfolders for each seed
@@ -689,8 +857,10 @@ def install_model(name_model, custom_url=None):
                     target_directory = folder(os.path.join(name_model, seed_name))
                     dirs_to_preserve = ()
                 logger.info(f"\nInstalling '{seed_name}'...")
-                urls_used[seed_name] = download.install_data(model_urls, target_directory, keep=True,
-                                                             dirs_to_preserve=dirs_to_preserve)
+                urls_used[seed_name] = [download.install_data(model_urls, target_directory, keep=(i > 0),
+                                                              dirs_to_preserve=dirs_to_preserve)]
+    else:
+        raise ValueError(f"Invalid url field in MODELS: {url_field}")
     # Write `source.json` (for model provenance / updating)
     source_dict = {
         'model_name': name_model,
@@ -721,12 +891,10 @@ def is_up_to_date(path_model):
 
     :return: bool: whether the model is up-to-date
     """
-    source_path = os.path.join(path_model, "source.json")
-    if not os.path.isfile(source_path):
+    source_dict = _read_source_json(path_model)
+    if not source_dict:
         logger.warning("Provenance file 'source.json' missing!")
         return False  # NB: This will force a reinstall
-    with open(source_path, "r") as fp:
-        source_dict = json.load(fp)
     model_name = source_dict["model_name"]
     if model_name not in MODELS:
         logger.warning(f"Model name '{model_name}' from source.json does not match model names in SCT source code.")
@@ -734,30 +902,40 @@ def is_up_to_date(path_model):
 
     expected_model_urls = MODELS[model_name]['url'].copy()
     actual_model_urls = source_dict["model_urls"]
+    # old format for cached/on-disk model may have been saved as a single string
+    if isinstance(actual_model_urls, str):
+        actual_model_urls = [actual_model_urls]
 
     if "custom" in source_dict and source_dict["custom"] is True:
         logger.warning(f"Using custom model from URL '{actual_model_urls}'.")
         return True  # Don't reinstall the model if the 'custom' flag is set (since custom URLs would fail comparison)
 
-    # Single-seed models
-    if isinstance(expected_model_urls, list) and isinstance(actual_model_urls, str):
-        if actual_model_urls not in expected_model_urls:
+    # Single-seed models (list of URLs)
+    if is_list_of_urls(expected_model_urls) and is_list_of_urls(actual_model_urls):
+        if not any(url in expected_model_urls for url in actual_model_urls):
             return False
-    # Multi-seed, ensemble models
-    elif isinstance(expected_model_urls, dict) and isinstance(actual_model_urls, dict):
-        for seed, url in actual_model_urls.items():
-            if seed not in expected_model_urls:
-                logger.warning(f"unexpected seed: {seed}")
-                return False
-            if url not in expected_model_urls.pop(seed):
-                logger.warning(f"wrong version for {seed}: {url}")
-                return False
-        if expected_model_urls:
-            logger.warning(f"missing seeds: {list(expected_model_urls.keys())}")
+
+    # Multi-seed, ensemble models (dict of lists of URLs, one list per seed)
+    elif is_dict_of_lists_of_urls(expected_model_urls) and is_dict_of_lists_of_urls(actual_model_urls):
+        expected_seeds = set(expected_model_urls)
+        actual_seeds = set(actual_model_urls)
+
+        if unexpected_seeds := actual_seeds - expected_seeds:
+            logger.warning(f"unexpected seeds: {list(unexpected_seeds)}")
             return False
+        if missing_seeds := expected_seeds - actual_seeds:
+            logger.warning(f"missing seeds: {list(missing_seeds)}")
+            return False
+
+        for seed in actual_seeds:
+            if not set(actual_model_urls[seed]).issubset(expected_model_urls[seed]):
+                logger.warning(f"wrong version for {seed}: {actual_model_urls[seed]}")
+                return False
+
     else:
         logger.warning("Mismatch between 'source.json' URL format and SCT source code URLs")
         return False
+
     logger.info(f"Model '{model_name}' is up to date (Source: {actual_model_urls})")
     return True
 
@@ -782,9 +960,9 @@ def has_ivadomed_files(path_model):
     Check if model path contains A) a named .pt/.onnx model file and B) a named ivadomed json configuration file
     """
     name_model = Path(path_model).name
-    path_pt = os.path.join(path_model, name_model + '.pt')
-    path_onnx = os.path.join(path_model, name_model + '.onnx')
-    path_json = os.path.join(path_model, name_model + '.json')
+    path_pt = os.path.join(path_model, f'{name_model}.pt')
+    path_onnx = os.path.join(path_model, f'{name_model}.onnx')
+    path_json = os.path.join(path_model, f'{name_model}.json')
     return (os.path.exists(path_pt) or os.path.exists(path_onnx)) and os.path.exists(path_json)
 
 
@@ -856,17 +1034,21 @@ def list_tasks_string():
 
     # Display coloured output
     color = {True: 'LightGreen', False: 'LightRed'}
-    table = "{}{}\n".format('TASK'.ljust(task_width), 'DESCRIPTION')
-    table += f"{'=' * table_width}\n"
+    table = [
+        "TASK".ljust(task_width), "DESCRIPTION\n",
+        "=" * table_width, "\n",
+    ]
 
     sorted_groups = _group_tasks(sorted(TASKS, key=_priority_then_alpha))
 
     for group_name, group_tasks in sorted_groups.items():
         # Format the group name in all-caps w/ underscores replaced with spaces
-        formatted_group_name = " ".join(group_name.split('_')).upper()
+        formatted_group_name = group_name.replace("_", " ").upper()
         # Add the header for this group
-        table += f"\n{formatted_group_name}\n"
-        table += f"{'-' * table_width}\n"
+        table.extend([
+            "\n", formatted_group_name, "\n",
+            "-" * table_width, "\n",
+        ])
         # Print out the task details
         for task_name in group_tasks:
             # Grab the details for this task from our dict
@@ -878,17 +1060,16 @@ def list_tasks_string():
             task_status = stylize(task_name.ljust(task_width), color[all(are_models_valid)])
             description_status = stylize(task_details['description'], color[all(are_models_valid)])
             # Add it to the task list
-            table += f"{task_status}{description_status}\n"
+            table.extend([task_status, description_status, "\n"])
 
     # Add a legend to denote which tools are installed or not and the end
-    table += '\nLegend: {} | {}\n\n'.format(
-            stylize("installed", color[True]),
-            stylize("not installed", color[False]))
-
-    table += 'To read in-depth descriptions of the training data, model architecture, '
-    table += 'etc. used for these tasks, type the following command:\n\n'
-    table += '    {}'.format(stylize('sct_deepseg -task-details', ['LightBlue', 'Bold']))
-    return table
+    table.extend([
+        "\nLegend: ", stylize("installed", color[True]), " | ", stylize("not installed", color[False]),
+        "\n\nTo read in-depth descriptions of the training data, model architecture, etc. "
+        "used for these tasks, type the following command:"
+        "\n\n    ", stylize("sct_deepseg -task-details", ['LightBlue', 'Bold']),
+    ])
+    return ''.join(table)
 
 
 def display_list_tasks():
@@ -911,15 +1092,12 @@ def display_list_tasks():
         # Grab the details of the task from the TASKS dict
         task_details = TASKS[task_name]
 
-        # Boilerplate reduction; define the formatting string once and re-use it throughout
-        fmt_str = "{} {}"
-
         # Lead with the task name, bolded to draw the user's attention
-        print(fmt_str.format(task_label.ljust(padded_len), stylize(task_name, 'Bold')))
+        print(f"{task_label.ljust(padded_len)} {stylize(task_name, 'Bold')}")
 
         # List out the valid contrasts for this model
         contrast_str = ', '.join(get_required_contrasts(task_name))
-        print(fmt_str.format(contrast_label.ljust(padded_len), contrast_str))
+        print(f"{contrast_label.ljust(padded_len)} {contrast_str}")
 
         # List out the model(s) used by this task
         task_models = task_details['models']
@@ -927,7 +1105,7 @@ def display_list_tasks():
         # Filter out models which are missing necessary files to avoid misleading the user
         model_validity = [is_valid(path_model) for path_model in model_paths]
         model_str = ', '.join([model_name for model_name, validity in zip(task_models, model_validity)])
-        print(fmt_str.format(model_label.ljust(padded_len), model_str))
+        print(f"{model_label.ljust(padded_len)} {model_str}")
 
         # Write out the "long" description, wrapped to fit within the console the user is using
         formatted_description = '\n'.join(textwrap.wrap(
@@ -938,18 +1116,18 @@ def display_list_tasks():
             subsequent_indent=' ' * (padded_len + 1),
 
         ))
-        print(fmt_str.format(description_label.ljust(padded_len), formatted_description))
+        print(f"{description_label.ljust(padded_len)} {formatted_description}")
 
         # The URL where the model was downloaded from; 'cyan' formatting is forced in case the console doesn't do it
         formatted_url = stylize(task_details['url'], styles='Cyan')
-        print(fmt_str.format(url_label.ljust(padded_len), formatted_url))
+        print(f"{url_label.ljust(padded_len)} {formatted_url}")
 
         # Whether the model is installed already or not
         formatted_installed = (
             stylize("Yes", 'LightGreen') if all(model_validity)
             else stylize("No", 'LightRed')
         )
-        print(fmt_str.format(installed_label.ljust(padded_len), formatted_installed))
+        print(f"{installed_label.ljust(padded_len)} {formatted_installed}")
 
         # Add a separating newline
         print('')
@@ -962,7 +1140,7 @@ def get_metadata(folder_model):
     :param path_model: str: Model folder
     :return: dict
     """
-    fname_metadata = os.path.join(folder_model, os.path.basename(folder_model) + '.json')
+    fname_metadata = os.path.join(folder_model, f'{os.path.basename(folder_model)}.json')
     with open(fname_metadata, "r") as fhandle:
         metadata = json.load(fhandle)
     return metadata

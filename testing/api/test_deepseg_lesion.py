@@ -12,13 +12,13 @@ from spinalcordtoolbox.utils.sys import __sct_dir__
 
 def test_model_file_exists():
     for model_name in deepseg_lesion.MODEL_LST:
-        model_path = os.path.join(__sct_dir__, 'data', 'deepseg_lesion_models', '{}_lesion.onnx'.format(model_name))
+        model_path = os.path.join(__sct_dir__, 'data', 'deepseg_lesion_models', f'{model_name}_lesion.onnx')
         assert os.path.isfile(model_path)
 
 
 def test_segment():
     contrast_test = 't2'
-    model_path = os.path.join(__sct_dir__, 'data', 'deepseg_lesion_models', '{}_lesion.onnx'.format(contrast_test))
+    model_path = os.path.join(__sct_dir__, 'data', 'deepseg_lesion_models', f'{contrast_test}_lesion.onnx')
 
     # create fake data
     data = np.zeros((48, 48, 96))

@@ -265,6 +265,11 @@ def get_parser():
         metavar=Metavar.str,
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -404,7 +409,7 @@ def main(argv: Sequence[str]):
 
     # display elapsed time
     elapsed_time = time.time() - start_time
-    printv('\nFinished! Elapsed time: ' + str(int(np.round(elapsed_time))) + 's', verbose)
+    printv(f'\nFinished! Elapsed time: {int(np.round(elapsed_time))}s', verbose)
 
     if arguments.qc is not None:
         qc2.sct_register(
@@ -416,6 +421,7 @@ def main(argv: Sequence[str]):
             path_qc=os.path.abspath(arguments.qc),
             dataset=arguments.qc_dataset,
             subject=arguments.qc_subject,
+            contrast=arguments.qc_contrast,
         )
 
     # If dest wasn't registered (e.g. unidirectional registration due to '-initwarp'), then don't output syntax

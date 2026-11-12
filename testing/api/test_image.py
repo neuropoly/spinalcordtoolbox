@@ -154,7 +154,7 @@ def fake_3dimage():
         for z in range(shape[2]):
             for y in range(shape[1]):
                 for x in range(shape[0]):
-                    sys.stdout.write(" % 3d" % data[x, y, z])
+                    sys.stdout.write(f" {data[x, y, z]: 3d}")
                 sys.stdout.write("\n")
             sys.stdout.write("\n")
 
@@ -341,7 +341,7 @@ def test_change_orientation(tmp_path, fake_3dimage_sct, fake_3dimage_sct_vis):
     print("Spot-checking that physical coordinates don't change")
     for shape_is in (1, 2, 3):
         shape = (1, 1, shape_is)
-        print("Simple image with shape {}".format(shape))
+        print(f"Simple image with shape {shape}")
 
         data = np.ones(shape, order="F")
         data[:, :, shape_is - 1] += 1
@@ -366,23 +366,23 @@ def test_change_orientation(tmp_path, fake_3dimage_sct, fake_3dimage_sct_vis):
         # The physical positions should be:
         posa_src = np.matmul(aff_src, pta_src)
         posa_dst = np.matmul(aff_dst, pta_dst)
-        print("A at src {}".format(posa_src.T))
-        print("A at dst {}".format(posa_dst.T))
+        print(f"A at src {posa_src.T}")
+        print(f"A at dst {posa_dst.T}")
         posz_src = np.matmul(aff_src, ptz_src)
         posz_dst = np.matmul(aff_dst, ptz_dst)
         # and they should be equal
         assert (posa_src == posa_dst).all()
         assert (posz_src == posz_dst).all()
         fn = "".join(str(x) for x in im_src.data.shape)
-        im_src.save(str(tmp_path / "{}-src.nii".format(fn)))
-        im_dst.save(str(tmp_path / "{}-dst.nii".format(fn)))
+        im_src.save(str(tmp_path / f"{fn}-src.nii"))
+        im_dst.save(str(tmp_path / f"{fn}-dst.nii"))
 
     np.random.seed(0)
 
     print("More checking that physical coordinates don't change")
     if 1:
         shape = (7, 8, 9)
-        print("Simple image with shape {}".format(shape))
+        print(f"Simple image with shape {shape}")
 
         data = np.ones(shape, order="F") * 10
         data[4, 4, 4] = 4
@@ -414,7 +414,7 @@ def test_change_orientation(tmp_path, fake_3dimage_sct, fake_3dimage_sct_vis):
         orientations = msct_image.all_refspace_strings()
         for ori_src in orientations:
             for ori_dst in orientations:
-                print("{} -> {}".format(ori_src, ori_dst))
+                print(f"{ori_src} -> {ori_dst}")
                 im_src = msct_image.change_orientation(im_ref, ori_src)
                 im_dst = msct_image.change_orientation(im_src, ori_dst)
 
@@ -437,8 +437,8 @@ def test_change_orientation(tmp_path, fake_3dimage_sct, fake_3dimage_sct_vis):
                     pos_src = np.matmul(aff_src, np.hstack((pt_src, [1])).reshape((4, 1)))
                     pos_dst = np.matmul(aff_dst, np.hstack((pt_dst, [1])).reshape((4, 1)))
                     if 0:
-                        print("P at src {}".format(pos_src.T))
-                        print("P at dst {}".format(pos_dst.T))
+                        print(f"P at src {pos_src.T}")
+                        print(f"P at dst {pos_dst.T}")
                     assert np.allclose(pos_src, pos_dst, atol=1e-3)
 
 
@@ -556,7 +556,7 @@ def test_more_change_orientation(tmp_path, fake_3dimage_sct, fake_3dimage_sct_vi
     possibilities = msct_image.all_refspace_strings()
     for orientation in possibilities:
         dst = msct_image.change_orientation(im_src, orientation)
-        # dst.save("pouet-{}.nii".format(dst.orientation))
+        # dst.save(f"pouet-{dst.orientation}.nii")
         print(orientation, dst.orientation, dst.data.shape, dst.dim)
         assert orientation == dst.orientation
         # assert dst.data.shape[:] == np.array(dst.dim)[:3]

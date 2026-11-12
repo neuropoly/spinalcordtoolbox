@@ -43,7 +43,7 @@ Registration
 - :ref:`sct_apply_transfo` - Apply transformations.
 - :ref:`sct_get_centerline` - Reconstruct spinal cord centerline.
 - :ref:`sct_register_multimodal` - Register two images together (non-linear, constrained in axial plane)
-- :ref:`sct_register_to_template` - Register an image with an anatomical template (eg. the `PAM50 template <https://pubmed.ncbi.nlm.nih.gov/29061527/>`_).
+- :ref:`sct_register_to_template` - Register an image with an anatomical template (eg. the `PAM50 template <https://doi.org/10.1016/j.neuroimage.2017.10.041>`_).
 - :ref:`sct_straighten_spinalcord` - Straighten spinal cord from centerline
 - :ref:`sct_warp_template` - Warps the template and all atlases to a destination image.
 
@@ -64,7 +64,7 @@ Magnetization transfer
 ======================
 
 - :ref:`sct_compute_mtr` - Compute magnetization transfer ratio (MTR).
-- :ref:`sct_compute_mtsat` - Compute MTsat and T1map `[Helms et al. Magn Reson Med 2008] <https://pubmed.ncbi.nlm.nih.gov/19025906/>`_.
+- :ref:`sct_compute_mtsat` - Compute MTsat and T1map `[Helms et al. Magn Reson Med 2008] <https://doi.org/10.1002/mrm.21732>`_.
 
 Functional MRI
 ==============
@@ -96,7 +96,7 @@ Miscellaneous
 
 - :ref:`sct_compute_ernst_angle` - Compute Ernst angle.
 - :ref:`sct_compute_snr` - Compute SNR using methods described in `[Dietrich et al. JMRI 2007]
-  <https://pubmed.ncbi.nlm.nih.gov/17622966/>`_.
+  <https://doi.org/10.1002/jmri.20969>`_.
 - :ref:`sct_download_data` - Download binaries from the web.
 - :ref:`sct_qc` - Generate Quality Control (QC) report following SCT processing.
 - :ref:`sct_run_batch` - Wrapper to processing scripts, which loops across subjects.

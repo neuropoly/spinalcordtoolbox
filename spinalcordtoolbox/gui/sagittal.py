@@ -27,7 +27,7 @@ class SagittalController(base.BaseController):
 
     def select_point(self, x, y, z, label):
         if not self.valid_point(x, y, z):
-            raise ValueError('Invalid coordinates {}'.format((x, y, z)))
+            raise ValueError(f'Invalid coordinates {(x, y, z)}')
 
         existing_point = [i for i, j in enumerate(self.points) if j[3] == label]
 
@@ -99,9 +99,9 @@ def launch_sagittal_dialog(input_file, output_file, params, previous_points=None
     if not params.vertebraes:
         params.vertebraes = [3, 5]
     params.input_file_name = input_file.absolutepath
-    params.subtitle += u"[KEYBOARD] Left/Right arrows: Navigate across slices." \
-                       "\n[MOUSE] Right click: Change brightness (left/right) and contrast (up/down)." \
-                       "\n[MOUSE] Scrolling middle button: Zoom in/out."
+    params.subtitle += ("[KEYBOARD] Left/Right arrows: Navigate across slices."
+                        "\n[MOUSE] Right click: Change brightness (left/right) and contrast (up/down)."
+                        "\n[MOUSE] Scrolling middle button: Zoom in/out.")
     controller = SagittalController(input_file, params, output_file, previous_points)
     controller.reformat_image()
 

@@ -14,17 +14,21 @@
 from argparse import SUPPRESS, Action
 import json
 import os
+import shutil
 import sys
 import logging
 from typing import Sequence
 from textwrap import dedent
 import functools
 
+import numpy as np
+
 from spinalcordtoolbox.reports import qc2
-from spinalcordtoolbox.image import splitext, Image, check_image_kind
+from spinalcordtoolbox.image import splitext, Image, check_image_kind, add_suffix
 from spinalcordtoolbox.utils.shell import SCTArgumentParser, Metavar, display_viewer_syntax, ActionCreateFolder
 from spinalcordtoolbox.utils.sys import init_sct, printv, __sct_dir__, set_loglevel, __version__, _git_info
 from spinalcordtoolbox.utils.sys import LazyLoader
+from spinalcordtoolbox.utils.fs import tmp_create
 
 cuda = LazyLoader("cuda", globals(), 'torch.cuda')
 
@@ -194,13 +198,14 @@ def get_parser(subparser_to_return=None):
             action="store_true")
         seg.add_argument(
             "-custom-url",
-            nargs="+",  # NB: `nargs="+"` won't work for installing custom ensemble models, but we no longer have any
-            # NB: For multi-model tasks, provide multiple URLs. For single models, just provide one URL.
-            #     We don't mention it in the help because we no longer have any multi-model tasks.
-            #     But, if we were to re-add a multi-model task one day, we could selectively amend this message.
+            nargs="+",
+            # NB: For multi-model tasks, or for tasks whose model is made of several folds/seeds (e.g. `lesion_ms`),
+            #     provide one URL per model/fold, in order. For single models, just provide one URL.
             help=f"URL(s) pointing to the `.zip` asset for a model release. This option can be used with `-install` to "
                  f"install a specific version of a model. To use this option, navigate to the 'Releases' page of the model, "
                  f"find release you wish to install, and right-click + copy the URL of the `.zip` listed under 'Assets'.\n"
+                 f"If the model is made up of multiple folds/seeds (e.g. `lesion_ms`), provide one URL per fold, in the "
+                 f"same order as the folds are listed for the model.\n"
                  f"Example:\n"
                  f"`sct_deepseg {task_name} -install -custom-url CUSTOM_URL`\n"
                  f"`sct_deepseg {task_name} -i t2.nii.gz`")
@@ -254,6 +259,11 @@ def get_parser(subparser_to_return=None):
             metavar=Metavar.str,
             help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
         )
+        misc.add_argument(
+            '-qc-contrast',
+            metavar=Metavar.str,
+            help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+        )
         task_args['-qc-plane'] = misc.add_argument(
             "-qc-plane",
             metavar=Metavar.str,
@@ -272,7 +282,7 @@ def get_parser(subparser_to_return=None):
             metavar=Metavar.file,
             help="Segmentation file to use for cropping the QC. This option is useful when you want to QC a region "
                  "that is different from the output segmentation. For example, it might be useful to provide a "
-                 "dilated cord segmentation to expand the QC field of view." + note_qc_seg
+                 f"dilated cord segmentation to expand the QC field of view.{note_qc_seg}"
         )
 
         # Add common arguments
@@ -308,20 +318,34 @@ def get_parser(subparser_to_return=None):
                      "More details on TotalSpineSeg's two models can be found here: https://github.com/neuropoly/totalspineseg/?tab=readme-ov-file#model-description",
                 choices=(0, 1),
                 default=0)
-        if task_name == 'lesion_ms':
-            # Add possibility of having soft segmentation for the lesion_ms task
+        if task_name in ('lesion_ms', 'spinalcord'):
+            # Add possibility of having soft segmentation output
             params.add_argument(
-                "-soft-ms-lesion",
+                "-soft-seg",
                 action="store_true",
-                help="If set, the model will output a soft segmentation (i.e. probability map) instead of a binary "
+                help="If set, the model will output a soft segmentation (i.e. float between 0 and 1) instead of a binary "
                      "segmentation."
             )
+        if task_name in ('lesion_ms', 'brachial_plexus'):
             # Add possibility of segmenting on only 1 fold for quicker inference
             params.add_argument(
                 "-single-fold",
                 action="store_true",
                 help="If set, only 1 fold will be used for inference instead of the full 5-fold ensemble. This will speed up inference, but may reduce segmentation quality."
             )
+
+        # -box-* lets the user override specific crop box face positions (voxel indices), for
+        # tasks whose model has "cropped_image": True (see models.load_crop_metadata()).
+        task_has_crop = any(models.MODELS[m].get('cropped_image') for m in task_dict['models'])
+        if task_has_crop:
+            crop_group = subparser.add_argument_group('\nSC-CROP box override')
+            for key in ('xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax'):
+                crop_group.add_argument(
+                    f"-box-{key}", type=int, metavar="VOX", default=None,
+                    help=f"Override the {key} face of the crop box (voxel index in the original image space). "
+                         f"Inspect `*_cropbox.nii.gz` in FSLeyes to find the current value and adjust. "
+                         f"If spinal cord detection fails outright, any face not overridden falls back to "
+                         f"the edge of the full image.")
 
         # Add input cropping note specific to the `lesion_ms_mp2rage` task
         if task_name == 'lesion_ms_mp2rage':
@@ -375,10 +399,21 @@ def main(argv: Sequence[str]):
     if arguments.install:
         models_to_install = models.TASKS[arguments.task]['models']
         if arguments.custom_url:
-            if len(arguments.custom_url) != len(models_to_install):
-                parser.error(f"Expected {len(models_to_install)} URL(s) for task {arguments.install}, "
+            # Some models (e.g. `model_seg_ms_lesion`) are made up of multiple folds, each of which needs its
+            # own URL. So, figure out how many URLs are expected per model, then split up the flat list of URLs
+            # provided by the user accordingly.
+            n_urls_per_model = [
+                len(models.MODELS[name_model]['url']) if isinstance(models.MODELS[name_model]['url'], dict) else 1
+                for name_model in models_to_install
+            ]  # It it's a dict, then it's a multifold model, and we need 1 URL per fold. Else, we need 1 URL.
+            n_urls_expected = sum(n_urls_per_model)
+            if len(arguments.custom_url) != n_urls_expected:
+                parser.error(f"Expected {n_urls_expected} URL(s) for task '{arguments.task}', "
                              f"but got {len(arguments.custom_url)} URL(s) instead.")
-            for name_model, custom_url in zip(models_to_install, arguments.custom_url):
+            i = 0
+            for name_model, n_urls in zip(models_to_install, n_urls_per_model):
+                custom_url = arguments.custom_url[i:i + n_urls]
+                i += n_urls
                 models.install_model(name_model, custom_url)
         else:
             for name_model in models_to_install:
@@ -388,18 +423,41 @@ def main(argv: Sequence[str]):
     # Deal with input/output
     for file in arguments.i:
         if not os.path.isfile(file):
-            parser.error("This file does not exist: {}".format(file))
+            parser.error(f"This file does not exist: {file}")
 
-    # Get pipeline model names
+    # Get pipeline model names and frameworks
     name_models = models.TASKS[arguments.task]['models']
+    model_frameworks = [models.MODELS[name_model]['framework'] for name_model in name_models]
+
+    # NB: Multi-model tasks are not well-tested for nnunetv2 models. There is no guarantee that the output of the
+    #     first stage will match the expected input of the second stage. (This specifically came up for the brachial
+    #     plexus task, where the second stage expects 2-channel output combining the input and the first stage output.)
+    #     So, we include a guard here for devs -- if a new multi-model task is added, it will trigger a failure on
+    #     first run, and only after it is tested should it be added to the list below.
+    if len(name_models) > 1 and any(framework != 'ivadomed' for framework in model_frameworks):
+        tested_tasks = ["brachial_plexus"]
+        if arguments.task not in tested_tasks:
+            parser.error(
+                f"Multi-stage inference with non-ivadomed models is not yet supported for task '{arguments.task}'. "
+                "A task-specific input handler is required."
+            )
+
+    # Parse -box-* once, here, and reuse `box_overrides` below in the pipeline loop.
+    # Whether a given model actually uses the sc-crop pipeline (`crop_active`) is only knowable
+    # once the model is installed, so it's determined per-model, inside the loop.
+    box_overrides = {
+        key: getattr(arguments, f'box_{key}', None)
+        for key in ('xmin', 'xmax', 'ymin', 'ymax', 'zmin', 'zmax')
+    }
+    box_overrides = {k: v for k, v in box_overrides.items() if v is not None}
 
     # Check if all input images and contrasts have been specified (only relevant for 'tumor-edema-cavity_t1-t2')
     if arguments.task == 'tumor_edema_cavity_t1_t2':
         required_contrasts = models.get_required_contrasts(arguments.task)
         if len(arguments.i) != len(required_contrasts):
             parser.error(
-                "{} input files found. Please provide all required input files for the task {}, i.e. contrasts: {}."
-                .format(len(arguments.i), arguments.task, ', '.join(required_contrasts)))
+                f"{len(arguments.i)} input files found. Please provide all required input files for the task {arguments.task}, i.e. contrasts: {', '.join(required_contrasts)}."
+                )
         if len(arguments.c) != len(arguments.i):
             parser.error(f"{len(arguments.i)} input files provided, but {len(arguments.c)} contrasts passed. "
                          f"Number of contrasts should match the number of inputs.")
@@ -407,19 +465,20 @@ def main(argv: Sequence[str]):
     # Run pipeline by iterating through the models
     fname_prior = None
     output_filenames = None
-    for name_model in name_models:
+    tmpdir = None
+    for idx, name_model in enumerate(name_models, start=1):
         # Check if this is an official model
         if name_model in list(models.MODELS.keys()):
             # If it is, check if it is installed
             path_model = models.folder(name_model)
             path_models = models.find_model_folder_paths(path_model)
             if not models.is_valid(path_models):
-                printv("Model {} is not installed. Installing it now...".format(name_model))
+                printv(f"Model {name_model} is not installed. Installing it now...")
                 models.install_model(name_model)
                 path_models = models.find_model_folder_paths(path_model)  # Re-parse to find newly downloaded folders
             # Check folder version file ('{path_model}/source.json')
             elif not models.is_up_to_date(path_model):
-                printv("Model {} is out of date. Re-installing it now...".format(name_model))
+                printv(f"Model {name_model} is out of date. Re-installing it now...")
                 models.install_model(name_model)
                 path_models = models.find_model_folder_paths(path_model)  # Re-parse to find newly downloaded folders
         # If it is not, check if this is a path to a valid model
@@ -427,7 +486,16 @@ def main(argv: Sequence[str]):
             path_model = os.path.abspath(name_model)
             path_models = models.find_model_folder_paths(path_model)
             if not models.is_valid(path_models):
-                parser.error("The input model is invalid: {}".format(path_models))
+                parser.error(f"The input model is invalid: {path_models}")
+
+        # Determine crop_active from the installed model's own metadata (see
+        # models.load_crop_metadata()): "cropped_image" says whether the model is expected to
+        # crop, but the padding -- and the final decision, if -custom-url points to a
+        # differently-trained artifact -- comes from the model folder actually on disk.
+        crop_pad = models.load_crop_metadata(name_model, path_model)
+        crop_active = bool(crop_pad)
+        if box_overrides and not crop_active:
+            parser.error("-box-* arguments are only valid for models using the sc-crop pipeline.")
 
         # Order input images (only relevant for 'tumor-edema-cavity_t1-t2')
         if arguments.task == 'tumor_edema_cavity_t1_t2':
@@ -470,7 +538,7 @@ def main(argv: Sequence[str]):
             # Pass any "extra" kwargs defined only for specific models/tasks
             extra_network_kwargs = {
                 arg_name: getattr(arguments, arg_name)
-                # "single_fold" -> used only by lesion_ms
+                # "single_fold" -> used only by lesion_ms and brachial_plexus
                 # "test_time_aug" -> used only by nnunetv2 models
                 for arg_name in ["single_fold", "test_time_aug"]
                 if hasattr(arguments, arg_name)
@@ -478,16 +546,29 @@ def main(argv: Sequence[str]):
             extra_inference_kwargs = {
                 arg_name: getattr(arguments, arg_name)
                 # "label_vert" -> used only by spine
-                # "soft_ms_lesion" -> used only by lesion_ms
-                for arg_name in ["label_vert", "soft_ms_lesion"]
+                # "soft_seg" -> used only by lesion_ms and spinalcord
+                for arg_name in ["label_vert", "soft_seg"]
                 if hasattr(arguments, arg_name)
             }
             # The MS lesion model is multifold, which requires turning on the "ensemble averaging" behavior
             if arguments.task == 'lesion_ms':
                 extra_inference_kwargs['ensemble'] = True
+            # crop-flagged models: detect SC, crop, run inference, uncrop (sc-crop pipeline).
+            # The model's own padding (from crop_metadata.json, see models.load_crop_metadata())
+            # is passed to sc_crop.detect() internally. The user can override individual crop
+            # box faces (voxel indices) via -box-*.
+            if crop_active:
+                extra_inference_kwargs['crop'] = True
+                extra_inference_kwargs['crop_pad'] = crop_pad
+                extra_inference_kwargs['box_overrides'] = box_overrides
+                extra_inference_kwargs['out_fname'] = arguments.o
             # Run inference
             im_lst, target_lst = inference.segment_non_ivadomed(
-                path_model, model_type, input_filenames, thr,
+                path_model=path_model,
+                model_type=model_type,
+                # For multistage models, the output of the previous stage is used as input for the next stage
+                input_filenames=[fname_prior] if fname_prior else input_filenames,
+                threshold=thr,
                 # NOTE: contrast-agnostic nnunet model sometimes predicts pixels outside the cord, we want to
                 # set keep_largest object as the default behaviour when using this model
                 keep_largest=1 if arguments.task == 'spinalcord' else arguments.keep_largest,
@@ -500,9 +581,15 @@ def main(argv: Sequence[str]):
             )
 
         # Delete intermediate outputs
-        if fname_prior and os.path.isfile(fname_prior) and arguments.r:
+        if arguments.r:
             logger.info("Remove temporary files...")
-            os.remove(fname_prior)
+            if fname_prior and os.path.isfile(fname_prior):
+                os.remove(fname_prior)
+                fname_prior_json = f"{splitext(fname_prior)[0]}.json"
+                if os.path.isfile(fname_prior_json):
+                    os.remove(fname_prior_json)
+            if tmpdir is not None and os.path.exists(tmpdir):
+                shutil.rmtree(tmpdir)
 
         output_filenames = []
         # Save output seg
@@ -546,11 +633,31 @@ def main(argv: Sequence[str]):
                     }
                 ]
             }
-            with open(splitext(fname_seg)[0] + ".json", "w") as fp:
+            with open(f"{splitext(fname_seg)[0]}.json", "w") as fp:
                 json.dump(sidecar_json, fp, indent=4)
 
         # Use the result of the current model as additional input of the next model
         fname_prior = fname_seg
+
+        # Special case for constructing the 2-channel input required by the second stage brachial_plexus model:
+        # From https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir:
+        #   > Stage 2 (Dataset202, fine): a 16-class bilateral segmentation. It takes two input channels, the
+        #   > image and the Stage 1 prediction, using the coarse map as a spatial prior.
+        # TODO: Verify that saving this image preserves the header (nibabel is known to do some odd things on save/load)
+        if arguments.task == "brachial_plexus":
+            image = Image(input_filenames[0])
+            prior = Image(fname_prior)
+            # store stacked images as (x, y, z, channels) in the array (we will transpose this before inference)
+            multichannel_data = np.stack((image.data, prior.data), axis=-1)
+            multichannel_image = Image(multichannel_data, hdr=image.hdr)
+            tmpdir = tmp_create(basename="sct_deepseg_brachial_plexus")
+            fname_multichannel = os.path.join(tmpdir, "input_channels.nii.gz")
+            multichannel_image.save(fname_multichannel)
+            fname_prior = fname_multichannel
+
+    # If a crop box was saved (sc-crop pipeline was active), its filename is derived the same way
+    # for both the QC report and the FSLeyes viewer command below.
+    fname_cropbox = add_suffix(arguments.o if arguments.o else arguments.i[0], "_cropbox")
 
     if arguments.qc is not None:
         if arguments.task == 'spine':
@@ -560,6 +667,7 @@ def main(argv: Sequence[str]):
                 path_qc=os.path.abspath(arguments.qc),
                 dataset=arguments.qc_dataset,
                 subject=arguments.qc_subject,
+                contrast=arguments.qc_contrast,
             )
             path_custom_labels = os.path.join(
                 __sct_dir__, 'spinalcordtoolbox', 'reports',
@@ -580,6 +688,16 @@ def main(argv: Sequence[str]):
                     offset_text=False,
                     **common_args,
                 )
+        elif arguments.task == "brachial_plexus":
+            qc2.sct_deepseg_brachial_plexus(
+                fname_input=input_filenames[0],
+                fname_seg=output_filenames[0],
+                argv=argv,
+                path_qc=os.path.abspath(arguments.qc),
+                dataset=arguments.qc_dataset,
+                subject=arguments.qc_subject,
+                contrast=arguments.qc_contrast,
+            )
         else:
             # If `arguments.qc_seg is None`, each entry will be treated as an
             # empty file with the same size as the corresponding input image
@@ -604,8 +722,20 @@ def main(argv: Sequence[str]):
                     path_qc=os.path.abspath(arguments.qc),
                     dataset=arguments.qc_dataset,
                     subject=arguments.qc_subject,
+                    contrast=arguments.qc_contrast,
                     plane=arguments.qc_plane,
                     fname_qc_seg=fname_qc_seg
+                )
+            # Separate QC entry for the crop box itself, so users can tell a bad crop apart
+            # from a bad segmentation (see qc2.sct_deepseg_cropbox() docstring).
+            if crop_active and os.path.isfile(fname_cropbox):
+                qc2.sct_deepseg_cropbox(
+                    fname_input=arguments.i[0],
+                    fname_cropbox=fname_cropbox,
+                    path_qc=os.path.abspath(arguments.qc),
+                    dataset=arguments.qc_dataset,
+                    subject=arguments.qc_subject,
+                    contrast=arguments.qc_contrast,
                 )
 
     images = [arguments.i[0]]
@@ -615,6 +745,11 @@ def main(argv: Sequence[str]):
         images.append(output_filename)
         im_types.append(check_image_kind(Image(output_filename)))
         opacities.append('0.7')
+    # If a crop box was saved (sc-crop pipeline was active), add it as a yellow outline overlay in FSLeyes.
+    if os.path.isfile(fname_cropbox):
+        images.append(fname_cropbox)
+        im_types.append('cropbox')
+        opacities.append('')
     display_viewer_syntax(images, im_types=im_types, opacities=opacities, verbose=verbose)
 
 

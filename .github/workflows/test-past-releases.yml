@@ -117,14 +117,23 @@ jobs:
       - name: Run tests (v5.4)
         if: matrix.sct_version == '5.4'
         run: ./python/envs/venv_sct/bin/pytest ./testing
+
       - name: Run tests (non-v5.4)
         if: matrix.sct_version != '5.4' && matrix.os != 'windows-2025'
+        # - 'test_calling_scripts_with_no_args_shows_usage': This CLI test consistently triggers false-positive timing
+        #      failures. It's only relevant for new PRs, so skip it when testing past releases.
+        env:
+          PYTEST_ADDOPTS: "-k 'not test_calling_scripts_with_no_args_shows_usage'"
         run: sct_testing
 
-      # The model `seg_sc_t2star` is failing on Windows 2025, but not on other platforms.
-      # It seems to produce non-deterministic outputs with varying Dice scores between runs.
-      # However, this model has been retired in v7.0, and was not really used even when it
-      # was available. So, we can just skip the test when running tests on Windows 2025.
       - name: Run tests (non-v5.4, Windows 2025)
         if: matrix.sct_version != '5.4' && matrix.os == 'windows-2025'
-        run: sct_testing -k 'not (test_segment_nifti and seg_sc_t2star)'
+        # - 'seg_sc_t2star': The model `seg_sc_t2star` is failing on Windows 2025, but not on other platforms.
+        #      It seems to produce non-deterministic outputs with varying Dice scores between runs.
+        #      However, this model has been retired in v7.0, and was not really used even when it
+        #      was available. So, we can just skip the test when running tests on Windows 2025.
+        # - 'test_calling_scripts_with_no_args_shows_usage': This CLI test consistently triggers false-positive timing
+        #      failures. It's only relevant for new PRs, so skip it when testing past releases.
+        env:
+          PYTEST_ADDOPTS: "-k 'not ((test_segment_nifti and seg_sc_t2star) or test_calling_scripts_with_no_args_shows_usage)'"
+        run: sct_testing

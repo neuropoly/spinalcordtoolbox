@@ -128,7 +128,7 @@ def vertebral_detection(fname, fname_seg, contrast, param, init_disc, verbose=1,
         ax_disc.set_title('Anatomical image')
         # ax.autoscale(enable=False)  # to prevent autoscale of axis when displaying plot
         ax_disc.scatter(yc + param['shift_AP_visu'], init_disc[0], c='yellow', s=10)
-        ax_disc.text(yc + param['shift_AP_visu'] + 4, init_disc[0], str(init_disc[1]) + '/' + str(init_disc[1] + 1),
+        ax_disc.text(yc + param['shift_AP_visu'] + 4, init_disc[0], f'{init_disc[1]}/{init_disc[1] + 1}',
                      verticalalignment='center', horizontalalignment='left', color='pink', fontsize=7)
 
     # FIND DISCS
@@ -160,13 +160,13 @@ def vertebral_detection(fname, fname_seg, contrast, param, init_disc, verbose=1,
                                         y=yc, yshift=param['shift_AP'], ysize=param['size_AP'],
                                         z=current_z, zshift=0, zsize=param['size_IS'],
                                         xtarget=xct, ytarget=yct, ztarget=current_z_template,
-                                        zrange=zrange, verbose=verbose, save_suffix='_disc' + str(current_value),
+                                        zrange=zrange, verbose=verbose, save_suffix=f'_disc{current_value}',
                                         path_output=path_output)
 
         # display new disc
         if verbose == 2:
             ax_disc.scatter(yc + param['shift_AP_visu'], current_z, c='yellow', s=10)
-            ax_disc.text(yc + param['shift_AP_visu'] + 4, current_z, str(current_value) + '/' + str(current_value + 1),
+            ax_disc.text(yc + param['shift_AP_visu'] + 4, current_z, f'{current_value}/{current_value + 1}',
                          verticalalignment='center', horizontalalignment='left', color='yellow', fontsize=7)
 
         # append to main list
@@ -443,7 +443,7 @@ def compute_corr_3d(src, target, x, xshift, xsize, y, yshift, ysize, z, zshift, 
                            z + iz - zsize: z + iz + zsize + 1]
         ax.imshow(np.flipud(np.mean(data_chunk3d[:, :, :], axis=0).transpose()), origin='upper', cmap='gray',
                   clim=[0, 800], interpolation='none')
-        ax.set_title('Subject at iz=' + str(iz))
+        ax.set_title(f'Subject at iz={iz}')
         # display correlation curve
         ax = fig.add_subplot(133)
         ax.plot(zrange, I_corr)
@@ -453,7 +453,7 @@ def compute_corr_3d(src, target, x, xshift, xsize, y, yshift, ysize, z, zshift, 
         ax.axhline(y=thr_corr, linewidth=1, color='r', linestyle='dashed')
         ax.grid()
         # save figure
-        fig.savefig('fig_pattern' + save_suffix + '.png')
+        fig.savefig(f'fig_pattern{save_suffix}.png')
 
     # return z-origin (z) + z-displacement minus zshift (to account for non-centered disc)
     return z + zrange[ind_peak] - zshift

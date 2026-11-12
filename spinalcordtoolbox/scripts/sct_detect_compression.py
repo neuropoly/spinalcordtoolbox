@@ -318,7 +318,7 @@ def main(argv: Sequence[str]):
         fname_out = arguments.o
     else:
         path, file_name, ext = extract_fname(get_absolute_path(fname_seg))
-        fname_out = os.path.join(path, file_name + '_compression_results' + '.csv')
+        fname_out = os.path.join(path, f'{file_name}_compression_results.csv')
     compression_df.to_csv(fname_out, index=False)
     printv(f"Results saved to: {fname_out}", verbose)
 

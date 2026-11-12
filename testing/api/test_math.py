@@ -50,7 +50,7 @@ def test_dilate(islabel):
     # Create dummy image with single pixel in the middle
     im = dummy_blob(size_arr=(9, 9, 9), coordvox=(4, 4, 4))
     if DUMP_IMAGES:
-        im.save('tmp_dummy_im_' + datetime.now().strftime("%Y%m%d%H%M%S%f") + '.nii.gz')
+        im.save(f'tmp_dummy_im_{datetime.now():%Y%m%d%H%M%S%f}.nii.gz')
 
     # cube (only asserting along one dimension for convenience)
     data_dil = sct_math.dilate(im.data, size=1, shape='cube', islabel=islabel)

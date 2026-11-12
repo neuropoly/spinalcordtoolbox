@@ -25,7 +25,7 @@ First, a convolutional neural network is used to generate a probablistic heatmap
 2. Centerline detection
 ***********************
 
-The heatmap is then fed into the `OptiC <https://archivesic.ccsd.cnrs.fr/PRIMES/hal-01713965v1>`__ algorithm to detect the spinal cord centerline.
+The heatmap is then fed into the `OptiC <https://doi.org/10.1007/978-3-319-66185-8_80>`__ algorithm to detect the spinal cord centerline.
 
 3. Patch extraction
 *******************

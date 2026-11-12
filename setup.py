@@ -51,6 +51,7 @@ setup(
             'recommonmark',
             'sphinx',
             'sphinx_argparse',
+            'sphinx-substitution-extensions',
         ],
     },
     entry_points=dict(

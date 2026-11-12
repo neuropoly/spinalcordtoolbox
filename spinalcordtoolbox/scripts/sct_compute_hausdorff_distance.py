@@ -39,7 +39,7 @@ class Param:
 # THINNING -------------------------------------------------------------------------------------------------------------
 class Thinning:
     def __init__(self, im, v=1):
-        printv('Thinning ... ', v, 'normal')
+        printv("Thinning ...", v, 'normal')
         self.image = im
         self.image.data = bin_data(self.image.data)
         self.dim_im = len(self.image.data.shape)
@@ -51,7 +51,7 @@ class Thinning:
 
         elif self.dim_im == 3:
             if not self.image.orientation == 'IRP':
-                printv('-- changing orientation ...')
+                printv("-- changing orientation ...")
                 self.image.change_orientation('IRP')
 
             thinned_data = np.asarray([self.zhang_suen(im_slice) for im_slice in self.image.data])
@@ -75,7 +75,7 @@ class Thinning:
         neighbours = [image[x_1][y], image[x_1][y1], image[x][y1], image[x1][y1],     # P2,P3,P4,P5
                       image[x1][y], image[x1][y_1], image[x][y_1], image[x_1][y_1]]    # P6,P7,P8,P9
         # t = time.time() - now
-        # printv('t neighbours: ', t)
+        # printv(f"t neighbours: {t}")
         return neighbours
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -90,7 +90,7 @@ class Thinning:
         n = neighbours + neighbours[0:1]      # P2, P3, ... , P8, P9, P2
         s = sum((n1, n2) == (0, 1) for n1, n2 in zip(n, n[1:]))  # (P2,P3), (P3,P4), ... , (P8,P9), (P9,P2)
         # t = time.time() - now
-        # printv('t transitions sum: ', t)
+        # printv(f"t transitions sum: {t}")
         return s
 
     # ------------------------------------------------------------------------------------------------------------------
@@ -141,7 +141,7 @@ class Thinning:
             for x, y in changing2:
                 image_thinned[x][y] = 0
         # t = time.time() - now
-        # printv('t thinning: ', t)
+        # printv(f"t thinning: {t}")
         return image_thinned
 
 
@@ -154,7 +154,7 @@ class HausdorffDistance:
         :return:
         """
         # now = time.time()
-        printv('Computing 2D Hausdorff\'s distance ... ', v, 'normal')
+        printv("Computing 2D Hausdorff's distance ...", v, 'normal')
         self.data1 = bin_data(data1)
         self.data2 = bin_data(data2)
 
@@ -168,7 +168,7 @@ class HausdorffDistance:
         # Hausdorff's distance in pixel
         self.H = max(self.h1, self.h2)
         # t = time.time() - now
-        # printv('Hausdorff dist time :', t)
+        # printv(f"Hausdorff dist time: {t}")
 
     # ------------------------------------------------------------------------------------------------------------------
     def relative_hausdorff_dist(self, dat1, dat2, v=1):
@@ -190,7 +190,7 @@ class HausdorffDistance:
                     d_p1_dat2.append(np.linalg.norm(p1 - p2))  # Euclidean distance between p1 and p2
                 h[x1, y1] = min(d_p1_dat2)
         else:
-            printv('Warning: an image is empty', v, 'warning')
+            printv("Warning: an image is empty", v, 'warning')
         return h
 
 
@@ -254,17 +254,17 @@ class ComputeDistances:
                 else:  # all values are zero
                     self.dist2_distribution.append(0)
 
-            self.res = 'Hausdorff\'s distance  -  First relative Hausdorff\'s distance median - Second relative Hausdorff\'s distance median(all in mm)\n'
+            self.res = "Hausdorff's distance  -  First relative Hausdorff's distance median - Second relative Hausdorff's distance median(all in mm)\n"
             for i, d in enumerate(self.distances):
                 med1 = np.median(self.dist1_distribution[i])
                 med2 = np.median(self.dist2_distribution[i])
                 if self.im2 is None:
-                    self.res += f'Slice {i} - slice {i+1}: {d.H * self.dim_pix}  -  {med1 * self.dim_pix}  -  {med2 * self.dim_pix}\n'
+                    self.res += f"Slice {i} - slice {i+1}: {d.H * self.dim_pix}  -  {med1 * self.dim_pix}  -  {med2 * self.dim_pix}\n"
                 else:
-                    self.res += f'Slice {i}: {d.H * self.dim_pix}  -  {med1 * self.dim_pix}  -  {med2 * self.dim_pix}\n'
+                    self.res += f"Slice {i}: {d.H * self.dim_pix}  -  {med1 * self.dim_pix}  -  {med2 * self.dim_pix}\n"
 
-        printv('-----------------------------------------------------------------------------\n' +
-               self.res, self.param.verbose, 'normal')
+        printv(f"-----------------------------------------------------------------------------\n{self.res}",
+               self.param.verbose, 'normal')
 
         if self.param.verbose == 2:
             self.show_results()
@@ -288,9 +288,9 @@ class ComputeDistances:
             dat2 = bin_data(self.im2.data)
 
         self.distances = HausdorffDistance(dat1, dat2, self.param.verbose)
-        self.res = 'Hausdorff\'s distance : ' + str(self.distances.H * self.dim_pix) + ' mm\n\n' \
-                   'First relative Hausdorff\'s distance : ' + str(self.distances.h1 * self.dim_pix) + ' mm\n' \
-                   'Second relative Hausdorff\'s distance : ' + str(self.distances.h2 * self.dim_pix) + ' mm'
+        self.res = (f"Hausdorff's distance : {self.distances.H * self.dim_pix} mm\n\n"
+                    f"First relative Hausdorff's distance : {self.distances.h1 * self.dim_pix} mm\n"
+                    f"Second relative Hausdorff's distance : {self.distances.h2 * self.dim_pix} mm")
 
     # ------------------------------------------------------------------------------------------------------------------
     def compute_dist_1im_3d(self):
@@ -401,12 +401,12 @@ def resample_image(fname, suffix='_resampled.nii.gz', binary=False, npx=0.3, npy
             # TODO: check if this above problem is still present (now that we are using nibabel instead of nipy)
             sct_image.main(['-i', ','.join([fname, fname]), '-concat', 'z', '-o', fname, '-v', '0'])
 
-        sct_resample.main(['-i', fname, '-mm', str(npx) + 'x' + str(npy) + 'x' + str(pz), '-o', name_resample,
+        sct_resample.main(['-i', fname, '-mm', f'{npx}x{npy}x{pz}', '-o', name_resample,
                            '-x', interpolation, '-v', '0'])
 
         if nz == 1:  # when input data was 2d: re-convert data 3d-->2d
             sct_image.main(['-i', name_resample, '-split', 'z', '-v', '0'])
-            im_split = Image(name_resample.split('.nii.gz')[0] + '_Z0000.nii.gz')
+            im_split = Image(f'{name_resample.split(".nii.gz")[0]}_Z0000.nii.gz')
             im_split.save(name_resample)
 
         if binary:
@@ -417,7 +417,7 @@ def resample_image(fname, suffix='_resampled.nii.gz', binary=False, npx=0.3, npy
         if orientation != 'RPI':
             img = Image(name_resample)
             img.change_orientation(orientation)
-            name_resample = add_suffix(img.absolutepath, "_{}".format(orientation.lower()))
+            name_resample = add_suffix(img.absolutepath, f"_{orientation.lower()}")
             img.save(path=name_resample, mutable=True)
 
         return name_resample
@@ -426,7 +426,7 @@ def resample_image(fname, suffix='_resampled.nii.gz', binary=False, npx=0.3, npy
             fname = add_suffix(fname, "_RPI")
             im_in = change_orientation(im_in, orientation).save(fname)
 
-        printv('Image resolution already ' + str(npx) + 'x' + str(npy) + 'xpz')
+        printv(f"Image resolution already {npx}x{npy}xpz")
         return fname
 
 
@@ -444,8 +444,8 @@ def non_zero_coord(data):
 
 def get_parser():
     parser = SCTArgumentParser(
-        description='Compute the Hausdorff\'s distance between two binary images which can be thinned (ie skeletonized).'
-                    ' If only one image is inputted, it will be only thinned'
+        description="Compute the Hausdorff's distance between two binary images which can be thinned (ie skeletonized)."
+                    " If only one image is inputted, it will be only thinned"
     )
 
     mandatory = parser.mandatory_arggroup
@@ -493,7 +493,7 @@ def main(argv: Sequence[str]):
 
     param = Param()
     if param.debug:
-        printv('\n*** WARNING: DEBUG MODE ON ***\n')
+        printv("\n*** WARNING: DEBUG MODE ON ***\n")
     else:
         input_fname = arguments.i
         input_second_fname = ''
@@ -545,11 +545,11 @@ def main(argv: Sequence[str]):
 
         res_fic = open(output_fname, 'w')
         res_fic.write(computation.res)
-        res_fic.write('\n\nInput 1: ' + input_fname)
-        res_fic.write('\nInput 2: ' + input_second_fname)
+        res_fic.write(f'\n\nInput 1: {input_fname}')
+        res_fic.write(f'\nInput 2: {input_second_fname}')
         res_fic.close()
 
-        # printv('Total time: ', time.time() - now)
+        # printv(f"Total time: {time.time() - now}")
 
 
 if __name__ == "__main__":

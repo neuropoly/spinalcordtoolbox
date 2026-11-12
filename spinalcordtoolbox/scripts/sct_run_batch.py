@@ -372,20 +372,20 @@ def run_single(subj_dir, script, script_args, path_segmanual, path_data, path_da
 
     # Strip the `.sh` extension from the script for building error logs
     # TODO: we should probably strip all extensions
-    script_base = re.sub('\\.sh$', '', os.path.basename(script))
+    script_base = re.sub(r'\.sh$', '', os.path.basename(script))
     script_full = os.path.abspath(os.path.expanduser(script))
 
     if os.path.sep in subj_dir:
         subject, session = subj_dir.split(os.path.sep)
-        subject_session = subject + '_' + session
+        subject_session = f'{subject}_{session}'
     else:
         subject = subj_dir
         subject_session = subject
 
-    log_file = os.path.join(path_log, '{}_{}.log'.format(script_base, subject_session))
-    err_file = os.path.join(path_log, 'err.{}_{}.log'.format(script_base, subject_session))
+    log_file = os.path.join(path_log, f'{script_base}_{subject_session}.log')
+    err_file = os.path.join(path_log, f'err.{script_base}_{subject_session}.log')
 
-    print('Started at {}: {}. See log file {}'.format(time.strftime('%Hh%Mm%Ss'), subject_session, log_file), flush=True)
+    print(f'Started at {time.strftime("%Hh%Mm%Ss")}: {subject_session}. See log file {log_file}', flush=True)
 
     # A full copy of the environment is needed otherwise sct programs won't necessarily be found
     envir = os.environ.copy()
@@ -413,7 +413,7 @@ def run_single(subj_dir, script, script_args, path_segmanual, path_data, path_da
     if sys.platform.startswith("win32"):
         with open(script_full) as f:
             first_line = f.readline()
-        shebang_pattern = re.compile("^#!.*/.*sh\b.*")
+        shebang_pattern = re.compile(r'^#!.*/.*sh\b')
         if script_full.endswith('.sh') or shebang_pattern.match(first_line):
             bash_exe = _find_nonsys32_bash_exe()
             if bash_exe:
@@ -472,7 +472,7 @@ def main(argv: Sequence[str]):
             elif ext == '.yml' or ext == '.yaml':
                 config = yaml.load(conf, Loader=yaml.Loader)
             else:
-                raise ValueError('Unrecognized configuration file type: {}'.format(ext))
+                raise ValueError(f'Unrecognized configuration file type: {ext}')
 
         # Warn people if they're overriding their config file
         if len(argv) > 2:
@@ -485,7 +485,7 @@ def main(argv: Sequence[str]):
             for k in config_keys.difference(orig_keys):
                 del config[k]  # Remove the unknown key
                 warnings.warn(UserWarning(
-                    'Unknown key "{}" found in your configuration file, ignoring.'.format(k)))
+                    f'Unknown key "{k}" found in your configuration file, ignoring.'))
 
         # Invoke the "parse YML" function for include_yml and exclude_yml if they are included
         # This is necessary because `.set_defaults` would otherwise bypass the custom action.
@@ -548,13 +548,13 @@ def main(argv: Sequence[str]):
 
     # Check that the script can be found
     if not os.path.exists(script):
-        raise FileNotFoundError('Couldn\'t find the script script at {}'.format(script))
+        raise FileNotFoundError(f'Couldn\'t find the script script at {script}')
 
     # Setup overall log
     batch_log = open(os.path.join(path_log, arguments.batch_log), 'w', encoding='csi-filter')
 
     # Duplicate init_sct message to batch_log
-    print('\n--\nSpinal Cord Toolbox ({})\n'.format(__version__), file=batch_log, flush=True)
+    print(f'\n--\nSpinal Cord Toolbox ({__version__})\n', file=batch_log, flush=True)
 
     # Tee IO to batch_log and std(out/err)
     orig_stdout = sys.stdout
@@ -580,17 +580,17 @@ def main(argv: Sequence[str]):
         os_running = 'windows'
     else:
         os_running = platform_running
-    print('OS: ' + os_running + ' (' + platform.platform() + ')')
+    print(f'OS: {os_running} ({platform.platform()})')
 
     # Display number of CPU cores
-    print('CPU cores: Available: {} | Threads used by ITK Programs: {}'.format(multiprocessing.cpu_count(), arguments.itk_threads))
+    print(f'CPU cores: Available: {multiprocessing.cpu_count()} | Threads used by ITK Programs: {arguments.itk_threads}')
 
     # Display RAM available
-    print("RAM: Total {} MB | Available {} MB | Used {} MB".format(
-        int(psutil.virtual_memory().total / 1024 / 1024),
-        int(psutil.virtual_memory().available / 1024 / 1024),
-        int(psutil.virtual_memory().used / 1024 / 1024),
-    ))
+    print(
+        f"RAM: Total {int(psutil.virtual_memory().total / 1024 / 1024)} MB | "
+        f"Available {int(psutil.virtual_memory().available / 1024 / 1024)} MB | "
+        f"Used {int(psutil.virtual_memory().used / 1024 / 1024)} MB"
+    )
 
     # Log the current arguments (in yaml because it's cleaner)
     print('\nINPUT ARGUMENTS')
@@ -600,8 +600,8 @@ def main(argv: Sequence[str]):
     # Display script version info
     print("SCRIPT")
     print("------")
-    print("git commit: {}".format(__get_commit(path_to_git_folder=os.path.dirname(script))))
-    print("git origin: {}".format(__get_git_origin(path_to_git_folder=os.path.dirname(script))))
+    print(f"git commit: {__get_commit(path_to_git_folder=os.path.dirname(script))}")
+    print(f"git origin: {__get_git_origin(path_to_git_folder=os.path.dirname(script))}")
     print("Copying script to output folder...")
     if os.path.isdir(script):
         print("Input folder is a directory (not a file). Skipping copy.")
@@ -609,21 +609,21 @@ def main(argv: Sequence[str]):
         try:
             # Copy the script and record the new location
             script_copy = os.path.abspath(shutil.copy(script, path_output))
-            print("{} -> {}".format(script, script_copy))
+            print(f"{script} -> {script_copy}")
             script = script_copy
         except shutil.SameFileError:
             print("Input and output folder are the same. Skipping copy.")
             pass
 
-    print("Setting execute permissions for script file {} ...".format(arguments.script))
+    print(f"Setting execute permissions for script file {arguments.script} ...")
     script_stat = os.stat(script)
     os.chmod(script, script_stat.st_mode | S_IEXEC)
 
     # Display data version info
     print("\nDATA")
     print("----")
-    print("git commit: {}".format(__get_commit(path_to_git_folder=path_data)))
-    print("git origin: {}\n".format(__get_git_origin(path_to_git_folder=path_data)))
+    print(f"git commit: {__get_commit(path_to_git_folder=path_data)}")
+    print(f"git origin: {__get_git_origin(path_to_git_folder=path_data)}\n")
 
     subject_dirs = _parse_dataset_directory(path_data, arguments.subject_prefix, arguments.ignore_ses)
 
@@ -655,7 +655,7 @@ def main(argv: Sequence[str]):
 
     print("RUNNING")
     print("-------")
-    print("Processing {} subjects in total. (Number of subjects processed in parallel: {}).".format(len(subject_dirs), jobs))
+    print(f"Processing {len(subject_dirs)} subjects in total. (Number of subjects processed in parallel: {jobs}).")
 
     # Run the jobs, recording start and end times
     start = datetime.datetime.now()
@@ -680,7 +680,7 @@ def main(argv: Sequence[str]):
     except Exception as e:
         if do_email:
             message = ('Oh no there has been the following error in your pipeline:\n\n'
-                       '{}'.format(e))
+                       f'{e}')
             try:
                 # I consider the multiprocessing error more significant than a potential email error, this
                 # ensures that the multiprocessing error is signalled.
@@ -701,17 +701,15 @@ def main(argv: Sequence[str]):
         status_message = '\nHooray! your batch completed successfully :-)\n'
         printv(status_message, verbose=verbose, type='info')
     else:
+        logs = "\n".join(fails)
         status_message = ('\nYour batch completed but some subjects may have not completed '
                           'successfully, please consult the logs for:\n'
-                          '{}\n'.format('\n'.join(fails)))
+                          f'{logs}\n')
         printv(status_message, verbose=verbose, type='error')
 
     # Display timing
     duration = end - start
-    timing_message = ('Started: {} | Ended: {} | Duration: {}\n'.format(
-        start.strftime('%F %Hh%Mm%Ss'),
-        end.strftime('%Hh%Mm%Ss'),
-        (datetime.datetime.utcfromtimestamp(0) + duration).strftime('%Hh%Mm%Ss')))
+    timing_message = (f'Started: {start:%F %Hh%Mm%Ss} | Ended: {end:%Hh%Mm%Ss} | Duration: {datetime.datetime.utcfromtimestamp(0) + duration:%Hh%Mm%Ss}\n')
     print(timing_message)
 
     if do_email:
@@ -722,14 +720,14 @@ def main(argv: Sequence[str]):
                  message="To open the Quality Control (QC) report in a web-browser")
 
     if arguments.zip:
-        file_zip = 'sct_run_batch_{}'.format(time.strftime('%Y%m%d%H%M%S'))
+        file_zip = f'sct_run_batch_{time.strftime("%Y%m%d%H%M%S")}'
         path_tmp = os.path.join(tempfile.mkdtemp(), file_zip)
         os.makedirs(os.path.join(path_tmp, file_zip))
         for folder in [path_log, path_qc, path_results]:
             shutil.copytree(folder, os.path.join(path_tmp, file_zip, os.path.split(folder)[-1]))
         shutil.make_archive(os.path.join(path_output, file_zip), 'zip', path_tmp)
         shutil.rmtree(path_tmp)
-        print("\nOutput zip archive: {}.zip".format(os.path.join(path_output, file_zip)))
+        print(f"\nOutput zip archive: {os.path.join(path_output, file_zip)}.zip")
 
     reset_streams()
     batch_log.close()

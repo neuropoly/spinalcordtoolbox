@@ -1,0 +1,190 @@
+name: Parallel batch_single_subject.sh testing
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  # Check that commands in tutorials match commands in batch_single_subject.sh
+  # This ensures the documentation stays in sync with the batch processing script.
+  check-batch-script-sync:
+    name: Check batch script sync
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout SCT
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+
+      - name: Check commands are in sync between
+        run: python3 .github/workflows/extract_commands.py
+
+  # parse the original batch_single_subject.sh into mini-scripts for each tutorial section, and generates a
+  # matrix JSON defining the job for each tutorial. It also uploads the mini-scripts as an artifact for downstream
+  # jobs to consume.
+  parse-and-generate:
+    runs-on: ubuntu-latest
+    outputs:
+      sections: ${{ steps.split.outputs.sections }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # NB: GHA matrix requires {"include": [...]} format
+      - name: Run parser to split batch_single_subject.sh
+        id: split
+        run: |
+          python3 .github/workflows/scripts/split_batch_single_subject.py batch_single_subject.sh --out scripts/batch_single_subject
+          JSON=$(jq -c '{include: .}' scripts/batch_single_subject/sections.json)
+          echo "sections=$JSON" >> $GITHUB_OUTPUT
+
+      - name: Upload mini-scripts artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: mini-scripts
+          path: scripts/batch_single_subject/
+
+  # conda environment installation is time-consuming, and we want to run the same environment across all of the
+  # tutorial sections, so we install SCT once and cache the installation for subsequent jobs
+  # NB: `actions/cache` sets up a post-install hook that automatically caches the specified paths at the end of the job
+  install-sct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install SCT
+        run: ./install_sct -y
+
+      - name: Save SCT installation to cache
+        uses: actions/cache/save@v5
+        with:
+          path: |
+            python/
+            bin/
+            data/
+          key: sct-${{ runner.os }}-${{ github.sha }}
+
+  # run each mini-script in parallel across multiple runners, with each job downloading the same SCT installation from
+  # cache and downloading the relevant dataset for that section. The resulting CSV files are uploaded as artifacts for
+  # the next job to collect.
+  run-section:
+    needs: [parse-and-generate, install-sct]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.parse-and-generate.outputs.sections) }}
+      fail-fast: false
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Restore cached SCT installation
+        id: cache-sct
+        uses: actions/cache@v5
+        with:
+          path: |
+            python/
+            bin/
+            data/
+          key: sct-${{ runner.os }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Set up SCT environment variables
+        run: |
+          echo "SCT_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: Download mini-scripts artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: mini-scripts
+          path: scripts/batch_single_subject
+
+      # NB: we derive the release base url from conf.py's sct_tutorial_data extlinks setting (i.e. same as tutorials)
+      - name: Download dataset and set DATA_DIR
+        run: |
+          echo "Section: ${{ matrix.name }}"
+          echo "Dataset: ${{ matrix.dataset }}"
+          BASE_URL=$(< documentation/source/sct_tutorial_data_url.txt)
+          
+          echo "Downloading from: ${BASE_URL}${{ matrix.dataset }}.zip"
+          curl -fsSL -o "${{ matrix.dataset }}.zip" "${BASE_URL}/${{ matrix.dataset }}.zip"
+          mkdir -p "$SCT_DIR/data"
+          unzip -q "${{ matrix.dataset }}.zip" -d "$SCT_DIR/data/"
+          
+          EXTRACT_DIR=$(unzip -Z1 "${{ matrix.dataset }}.zip" | head -1 | sed 's|/.*||')
+          echo "Zip extracted top-level dir: $EXTRACT_DIR"          
+          DATA_DIR="$SCT_DIR/data/$EXTRACT_DIR/data"
+          echo "DATA_DIR=$DATA_DIR" >> $GITHUB_ENV
+          
+          # debug tree
+          find "$SCT_DIR/data/$EXTRACT_DIR" -maxdepth 3 | sort | head -60
+
+      - name: Run mini-script
+        working-directory: ${{ env.DATA_DIR }}
+        run: |
+          bash -x "$GITHUB_WORKSPACE/scripts/batch_single_subject/${{ matrix.file }}"
+
+      - name: Upload CSV artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: csvs-${{ matrix.file }}
+          path: ${{ env.DATA_DIR }}/**/*.csv
+
+  # run pytest against the collected CSV files
+  collect-and-validate:
+    needs: run-section
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Restore cached SCT installation
+        id: cache-sct
+        uses: actions/cache@v5
+        with:
+          path: |
+            python/
+            bin/
+            data/
+          key: sct-${{ runner.os }}-${{ github.sha }}
+          fail-on-cache-miss: true
+
+      - name: Set up SCT environment variables
+        run: |
+          echo "SCT_DIR=$GITHUB_WORKSPACE" >> $GITHUB_ENV
+          echo "$GITHUB_WORKSPACE/bin" >> $GITHUB_PATH
+
+      - name: Download all CSV artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: collected-csvs
+          merge-multiple: 'true'
+
+      - name: List collected CSVs
+        run: |
+          echo "Artifacts downloaded to: collected-csvs"
+          find collected-csvs -type f -name '*.csv' -print || true
+
+      - name: Collect CSVs into expected OUTPUT_DIR
+        run: |
+          OUTPUT_DIR="${SCT_DIR}/data/sct_course_data/single_subject/data"
+          mkdir -p "${OUTPUT_DIR}"
+          cp -r collected-csvs/. "${OUTPUT_DIR}/"
+
+      - name: List copied CSVs
+        run: |
+          OUTPUT_DIR="${SCT_DIR}/data/sct_course_data/single_subject/data"
+          echo "Artifacts copied to: ${OUTPUT_DIR}"
+          find ${OUTPUT_DIR} -type f -name '*.csv' -print || true
+
+      - name: Validate new results
+        run: |
+          # Auto-pass macOS as it would fail due to https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3194
+          if [ "$RUNNER_OS" == "macOS" ]; then
+               sct_testing testing/batch_single_subject/test_batch_single_subject.py || exit 0
+          else
+               sct_testing testing/batch_single_subject/test_batch_single_subject.py
+          fi

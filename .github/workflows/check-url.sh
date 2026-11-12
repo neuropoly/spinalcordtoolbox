@@ -25,6 +25,32 @@ HTTP_CODE_PLUS_BOTH_URLS=(--write-out '%{http_code}|%{url}|%{url_effective}' --o
 # We still keep a 5m limit, though, because --retry respects the Retry-After field, which may be greater than 30s.
 RETRY_ARGS=(--retry 2 --retry-delay 30 --retry-max-time 300 --retry-all-errors)
 
+# Special-case `doi.org` links: DOIs are permanent identifiers that redirect to a secondary
+# (potentially flaky or access-restricted) URL. Rather than fetching that URL, we only check
+# that doi.org resolves the DOI to some other host. This validates that the DOI is registered.
+DOI_RE='^https?://(dx\.|www\.)?doi\.org/'
+if [[ "$URL" =~ ${DOI_RE}10\. ]]; then
+    # Force https so doi.org's own http->https redirect can't make a bad DOI look valid.
+    https_url="https://${URL#*://}"
+
+    # No `--insecure`: we're trusting the Location header, so we want TLS verification.
+    # `%{redirect_url}` is the Location header; without `--location`, curl doesn't follow it.
+    read -r doi_code redirect_url < <(
+        curl --head --silent "${RETRY_ARGS[@]}" \
+             --write-out '%{http_code} %{redirect_url}\n' --output /dev/null -- "$https_url"
+    )
+
+    if [[ -n "$redirect_url" && ! "$redirect_url" =~ $DOI_RE ]]; then
+        echo "(redirect) $https_url --> $redirect_url ($filename)" >> valid_urls.txt
+        echo -e "$filename: \x1B[32m✅  OK - doi.org redirects to: $redirect_url  \x1B[0m"
+        exit 0
+    else
+        echo -e "(\x1B[31m$doi_code\x1B[0m) $https_url ($filename)" >> invalid_urls.txt
+        echo -e "$filename: \x1B[31m⛔ Error - doi.org did not redirect elsewhere - code: $doi_code for URL $https_url \x1B[0m"
+        exit 1
+    fi
+fi
+
 # Do an initial `--head` check to figure out both the original and redirected URLs,
 # as well as the final status code after any redirections.
 IFS='|' read -r status_code original_url effective_url < <(
@@ -36,8 +62,9 @@ IFS='|' read -r status_code original_url effective_url < <(
 # - `.ru` -> Russian domains, which don't play nicely with curl'ing from GitHub's servers
 # - `ieeexplore.ieee.org` -> oddly returns a "418 - I'm a teapot" error code instead of 403
 # - `thejns.org` -> returns 405 for both HEAD and GET requests, rather than the 403 it used to return (curling locally still gives 403, oddly)
-# - `%s` -> placeholder for a URL, which is used in our documentation's `conf.py` file
-if [[ "$original_url + $effective_url" =~ 'pipeline-hemis'|'.ru'|'ieeexplore.ieee.org'|'thejns.org'|'%s' ]];then
+# - `sct_tutorial_data` -> partial URL, which is used in our documentation's `conf.py` file
+# - `biorxiv.org` -> throws 429 for any requests
+if [[ "$original_url + $effective_url" =~ pipeline-hemis|\.ru|ieeexplore\.ieee\.org|thejns\.org|sct_tutorial_data|biorxiv\.org ]]; then
     echo -e "$filename: \x1B[33m⚠️ Warning - Skipping: $URL --> $LOCATION\x1B[0m"
     exit 0
 fi

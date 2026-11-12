@@ -182,12 +182,12 @@ def main(argv: Sequence[str]):
         snr_map = np.zeros_like(data_mean)
         snr_map[mask_std_nonzero] = data_mean[mask_std_nonzero] / data_std[mask_std_nonzero]
         # Output SNR map
-        fname_snr = add_suffix(fname_data, '_SNR-' + method)
+        fname_snr = add_suffix(fname_data, f'_SNR-{method}')
         im_snr = empty_like(im_data)
         im_snr.data = snr_map
         im_snr.save(fname_snr, dtype=np.float32)
         # Output non-zero mask
-        fname_stdnonzero = add_suffix(fname_data, '_mask-STD-nonzero' + method)
+        fname_stdnonzero = add_suffix(fname_data, f'_mask-STD-nonzero{method}')
         im_stdnonzero = empty_like(im_data)
         data_stdnonzero = np.zeros_like(data_mean)
         data_stdnonzero[mask_std_nonzero] = 1
@@ -254,13 +254,13 @@ def main(argv: Sequence[str]):
 
     # Display result
     if fname_mask:
-        printv('\nSNR_' + method + ' = ' + str(snr_roi) + '\n', type='info')
+        printv(f'\nSNR_{method} = {snr_roi}\n', type='info')
 
     # Added function for text file
     if file_name is not None:
         with open(file_name, "w") as f:
             f.write(str(snr_roi))
-            printv('\nFile saved to ' + file_name)
+            printv(f'\nFile saved to {file_name}')
 
 
 if __name__ == "__main__":

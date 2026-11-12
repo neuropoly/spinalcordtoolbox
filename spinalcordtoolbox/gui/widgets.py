@@ -43,7 +43,7 @@ class VertebraeWidget(QtWidgets.QWidget):
         font.setPointSize(10)
 
         for vertebrae in self.vertebraes:
-            rdo = QtWidgets.QCheckBox('Label {}'.format(vertebrae))
+            rdo = QtWidgets.QCheckBox(f'Label {vertebrae}')
             rdo.label = vertebrae
             rdo.setFont(font)
             rdo.setTristate()
@@ -65,7 +65,7 @@ class VertebraeWidget(QtWidgets.QWidget):
         for checkbox in self._check_boxes.values():
             checkbox.setCheckState(QtCore.Qt.Unchecked)
 
-        logger.debug('refresh labels {}'.format(self.parent._controller.points))
+        logger.debug(f'refresh labels {self.parent._controller.points}')
         for point in self.parent._controller.points:
             self._check_boxes[point[3]].setCheckState(QtCore.Qt.Checked)
 
@@ -177,7 +177,7 @@ class AnatomicalCanvas(FigureCanvas):
         self.view.set_clim(vmin=self.vmin_updated, vmax=self.vmax_updated)
         # self.view.set_clim(self._parent._controller.vmin_updated,
         #                    self._parent._controller.vmax_updated)
-        logger.debug("vmin_updated="+str(self.vmin_updated)+", vmax_updated="+str(self.vmax_updated))
+        logger.debug(f"vmin_updated={self.vmin_updated}, vmax_updated={self.vmax_updated}")
         self.plot_position()
         self.plot_points()
         self.view.figure.canvas.draw()
@@ -236,7 +236,7 @@ class AnatomicalCanvas(FigureCanvas):
                 self.previous_point = (event.xdata, event.ydata)
                 return
 
-            logger.debug("X=" + str(event.xdata) + ", Y=" + str(event.ydata))
+            logger.debug(f"X={event.xdata}, Y={event.ydata}")
             xlim, ylim = self._axes.get_xlim(), self._axes.get_ylim()
             x_factor = (event.xdata - xlim[0]) / float(xlim[1] - xlim[0])  # between 0 and 1. No change: 0.5
             y_factor = (event.ydata - ylim[1]) / float(ylim[0] - ylim[1])
@@ -275,10 +275,10 @@ class AnatomicalCanvas(FigureCanvas):
             self._vertical_nav = self._axes.axvline(position, color='r')
 
     def __repr__(self):
-        return '{}: {}, {}, {}'.format(self.__class__, self._x, self._y, self._z)
+        return f'{self.__class__}: {self._x}, {self._y}, {self._z}'
 
     def __str__(self):
-        return '{}: {}, {}'.format(self._x, self._y, self._z)
+        return f'{self._x}: {self._y}, {self._z}'
 
 
 class SagittalCanvas(AnatomicalCanvas):
@@ -303,7 +303,7 @@ class SagittalCanvas(AnatomicalCanvas):
     def plot_points(self):
         """Plot the controller's list of points (x, y) and annotate the point with the label"""
         if self._plot_points:
-            logger.debug('Plotting points {}'.format(self._parent._controller.points))
+            logger.debug(f'Plotting points {self._parent._controller.points}')
             points = self._parent._controller.points
             self.clear()
             try:
@@ -337,7 +337,7 @@ class CoronalCanvas(AnatomicalCanvas):
             self.point_selected_signal.emit(event.xdata, self._y, event.ydata)
 
     def plot_points(self):
-        logger.debug('Plotting points {}'.format(self._parent._controller.points))
+        logger.debug(f'Plotting points {self._parent._controller.points}')
         if self._parent._controller.points:
             points = [x for x in self._parent._controller.points]
             self.clear()
@@ -370,7 +370,7 @@ class AxialCanvas(AnatomicalCanvas):
     def plot_points(self):
         if self._plot_points:
             controller = self._parent._controller
-            logger.debug('Plotting points {}'.format(controller.points))
+            logger.debug(f'Plotting points {controller.points}')
             points = [x for x in controller.points if x[0] == controller.position[0]]
             self.clear()
             try:

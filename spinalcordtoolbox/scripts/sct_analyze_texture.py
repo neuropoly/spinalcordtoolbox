@@ -24,7 +24,7 @@ def get_parser():
         description='Extraction of gray level co-occurence matrix (GLCM) texture features from an image within a given '
                     'mask. The textures features are those defined in the sckit-image implementation: '
                     'https://scikit-image.org/docs/dev/api/skimage.feature.html#graycoprops. This function outputs '
-                    'one nifti file per texture metric (' + ParamGLCM().feature + ') and per orientation called '
+                    f'one nifti file per texture metric ({ParamGLCM().feature}) and per orientation called '
                     'fnameInput_feature_distance_angle.nii.gz. Also, a file averaging each metric across the angles, '
                     'called fnameInput_feature_distance_mean.nii.gz, is output.'
     )
@@ -96,7 +96,7 @@ class ExtractGLCM:
         self.metric_lst = []
         for m in list(itertools.product(self.param_glcm.feature.split(','), self.param_glcm.angle.split(','))):
             text_name = m[0] if m[0].upper() != 'asm'.upper() else m[0].upper()
-            self.metric_lst.append(text_name + '_' + str(self.param_glcm.distance) + '_' + str(m[1]))
+            self.metric_lst.append(f'{text_name}_{self.param_glcm.distance}_{m[1]}')
 
         # dct_im_seg{'im': list_of_axial_slice, 'seg': list_of_axial_masked_slice}
         self.dct_im_seg = {'im': None, 'seg': None}
@@ -159,19 +159,19 @@ class ExtractGLCM:
 
     def mean_angle(self):
 
-        im_metric_lst = [self.fname_metric_lst[f].split('_' + str(self.param_glcm.distance) + '_')[0] + '_' for f in self.fname_metric_lst]
+        im_metric_lst = [f'{self.fname_metric_lst[f].split(f"_{self.param_glcm.distance}_")[0]}_' for f in self.fname_metric_lst]
         im_metric_lst = list(set(im_metric_lst))
 
         printv('\nMean across angles...', self.param.verbose, 'normal')
         extension = extract_fname(self.param.fname_im)[2]
         for im_m in im_metric_lst:     # Loop across GLCM texture properties
             # List images to mean
-            fname_mean_list = [im_m + str(self.param_glcm.distance) + '_' + a + extension
+            fname_mean_list = [f'{im_m}{self.param_glcm.distance}_{a}{extension}'
                                for a in self.param_glcm.angle.split(',')]
             im_mean_list = [Image(fname) for fname in fname_mean_list]
 
             # Average across angles and save it as wrk_folder/fnameIn_feature_distance_mean.extension
-            fname_out = im_m + str(self.param_glcm.distance) + '_mean' + extension
+            fname_out = f'{im_m}{self.param_glcm.distance}_mean{extension}'
 
             dim_idx = 3  # img is [x, y, z, angle] so specify 4th dimension (angle)
 
@@ -182,7 +182,7 @@ class ExtractGLCM:
             img.data = np.mean(img.data, dim_idx)
             img.save()
 
-            self.fname_metric_lst[im_m + str(self.param_glcm.distance) + '_mean'] = fname_out
+            self.fname_metric_lst[f'{im_m}{self.param_glcm.distance}_mean'] = fname_out
 
     def extract_slices(self):
         # open image and re-orient it to RPI if needed
@@ -236,11 +236,11 @@ class ExtractGLCM:
                         for m in self.metric_lst:  # compute the GLCM property (m.split('_')[0]) of the voxel xx,yy,zz
                             dct_metric[m].data[xx, yy, zz] = graycoprops(dct_glcm[m.split('_')[2]], m.split('_')[0])[0][0]
 
-                        pbar.set_postfix(pos="{}/{}".format(zz, len(self.dct_im_seg["im"])))
+                        pbar.set_postfix(pos=f"{zz}/{len(self.dct_im_seg['im'])}")
                         pbar.update(1)
 
         for m in self.metric_lst:
-            fname_out = add_suffix("".join(extract_fname(self.param.fname_im)[1:]), '_' + m)
+            fname_out = add_suffix("".join(extract_fname(self.param.fname_im)[1:]), f'_{m}')
             dct_metric[m].save(fname_out)
             self.fname_metric_lst[m] = fname_out
 
@@ -295,7 +295,7 @@ def main(argv: Sequence[str]):
         param.path_results = arguments.ofolder
 
     if not os.path.isdir(param.path_results) and os.path.exists(param.path_results):
-        printv("ERROR output directory %s is not a valid directory" % param.path_results, 1, 'error')
+        printv(f"ERROR output directory {param.path_results} is not a valid directory", 1, 'error')
     if not os.path.exists(param.path_results):
         os.makedirs(param.path_results)
 

@@ -50,7 +50,7 @@ run_tests() {
   activate_venv_sct
   # re-run failed tests, just in case something flaky has happened. if no failures, do nothing.
   pytest testing/api testing/cli || pytest --last-failed --last-failed-no-failures none
-  # NB: 'testing/batch_processing' is run by a separate CI workflow
+  # NB: 'testing/batch_single_subject' is run by a separate CI workflow
 }
 
 while getopts ":ict" opt; do

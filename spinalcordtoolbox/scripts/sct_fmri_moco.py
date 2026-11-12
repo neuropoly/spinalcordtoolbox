@@ -134,6 +134,11 @@ def get_parser():
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
     optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
+    optional.add_argument(
         '-dl',
         action='store_true',
         help="Use deep learning–based motion correction (DenseNet).\n"
@@ -177,6 +182,7 @@ def main(argv: Sequence[str]):
     qc_fps = arguments.qc_fps
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
     qc_seg = arguments.qc_seg
 
     mutually_inclusive_args = (path_qc, qc_seg)
@@ -208,7 +214,7 @@ def main(argv: Sequence[str]):
     if path_qc is not None:
         generate_qc(fname_in1=fname_output_image, fname_in2=param.fname_data, fname_seg=qc_seg,
                     args=argv, path_qc=os.path.abspath(path_qc), fps=qc_fps, dataset=qc_dataset,
-                    subject=qc_subject, process='sct_fmri_moco')
+                    subject=qc_subject, contrast=qc_contrast, process='sct_fmri_moco')
 
     display_viewer_syntax([fname_output_image, param.fname_data], mode='ortho,ortho', verbose=verbose)
 

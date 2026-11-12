@@ -650,7 +650,7 @@ def compute_similarity(img1: Image, img2: Image, fname_out: str, metric: str, me
     if verbose > 1:
         plt.plot(data1_1d, 'b')
         plt.plot(data2_1d, 'r')
-        plt.title('Similarity: ' + metric_full + ' = ' + str(res))
+        plt.title(f'Similarity: {metric_full} = {res}')
         plt.savefig('fig_similarity.png')
 
     path_out, filename_out, ext_out = extract_fname(fname_out)
@@ -659,7 +659,7 @@ def compute_similarity(img1: Image, img2: Image, fname_out: str, metric: str, me
 
     if ext_out == '.txt':
         with open(fname_out, 'w') as f:
-            f.write(metric_full + ': \n' + str(res))
+            f.write(f'{metric_full}: \n{res}')
     elif ext_out == '.pklz':
         pickle.dump(res, gzip.open(fname_out, 'wb'), protocol=2)
     else:

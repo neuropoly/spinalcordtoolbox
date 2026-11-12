@@ -5,16 +5,17 @@ First, we will use the gray and white matter segmentations to compute the cross 
 
 .. important:: There is a limit to the precision you can achieve for a given image resolution. SCT does not truncate spurious digits when performing angle correction, so please keep in mind that there may be non-significant digits in the computed values. You may wish to compare angle-corrected values with their corresponding uncorrected values to get a sense of the limits on precision.
 
-Compute CSA
------------
+
+Compute CSA (Per-slice)
+-----------------------
 
 .. code::
 
-   sct_process_segmentation -i t2s_wmseg.nii.gz -o csa_wm.csv -perslice 1 -angle-corr 0
+   sct_process_segmentation -i t2s_wmseg.nii.gz -o csa_wm_perslice.csv -perslice 1 -angle-corr 0
 
 .. code::
 
-   sct_process_segmentation -i t2s_gmseg.nii.gz -o csa_gm.csv -perslice 1 -angle-corr 0
+   sct_process_segmentation -i t2s_gmseg.nii.gz -o csa_gm_perslice.csv -perslice 1 -angle-corr 0
 
 :Input arguments:
    - ``-i`` : The input segmentation file.

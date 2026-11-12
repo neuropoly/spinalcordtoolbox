@@ -52,17 +52,16 @@ def main(argv: Sequence[str]):
         # Check if this transformation should be inverted
         if path_warp in warpinv_filename:
             use_inverse.append('-i')
-            fname_warp_list_invert += [[use_inverse[idx_warp], fname_warp_list[idx_warp]]]
+            fname_warp_list_invert.extend([[use_inverse[idx_warp], fname_warp_list[idx_warp]]])
         else:
             use_inverse.append('')
-            fname_warp_list_invert += [[path_warp]]
+            fname_warp_list_invert.append([path_warp])
         path_warp = fname_warp_list[idx_warp]
         if path_warp.endswith((".nii", ".nii.gz")) \
                 and Image(fname_warp_list[idx_warp]).header.get_intent()[0] != 'vector':
-            raise ValueError("Displacement field in {} is invalid: should be encoded"
+            raise ValueError(f"Displacement field in {path_warp} is invalid: should be encoded"
                              " in a 5D file with vector intent code"
-                             " (see https://web.archive.org/web/20241009085040/https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h"
-                             .format(path_warp))
+                             " (see https://web.archive.org/web/20241009085040/https://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1.h)")
 
     # check if destination file is 3d
     check_dim(fname_dest, dim_lst=[3])
@@ -90,16 +89,16 @@ def main(argv: Sequence[str]):
     else:
         dimensionality = '3'
 
-    cmd = ['isct_ComposeMultiTransform', dimensionality, 'warp_final' + ext_out, '-R', fname_dest] + fname_warp_list_invert
+    cmd = ['isct_ComposeMultiTransform', dimensionality, f'warp_final{ext_out}', '-R', fname_dest] + fname_warp_list_invert
     _, output = run_proc(cmd, verbose=verbose, is_sct_binary=True)
 
     # check if output was generated
-    if not os.path.isfile('warp_final' + ext_out):
+    if not os.path.isfile(f'warp_final{ext_out}'):
         raise ValueError(f"Warping field was not generated! {output}")
 
     # Generate output files
     printv('\nGenerate output files...', verbose)
-    generate_output_file('warp_final' + ext_out, os.path.join(path_out, file_out + ext_out))
+    generate_output_file(f'warp_final{ext_out}', os.path.join(path_out, file_out + ext_out))
 
 
 # ==========================================================================================

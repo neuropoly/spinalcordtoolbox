@@ -1,0 +1,111 @@
+{
+  "name": "Spinal Cord Toolbox",
+
+  // Use a Dockerfile for custom image
+  "build": {
+    "dockerfile": "../Dockerfile"
+  },
+
+  // Features to install
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1.10.0": {},
+    "ghcr.io/miguelrodo/devcontainerfeatures/apptainer:1.1.4": {},
+    "ghcr.io/postfinance/devcontainer-features/make:1.0.0": {}
+  },
+
+  // VSCode extensions
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "ms-python.debugpy",
+        "ms-python.pytest",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        "ms-toolsai.jupyter-renderers",
+        "ms-python.flake8",
+        "lextudio.restructuredtext",
+        "mhutchie.git-graph",
+        "ms-vscode-remote.remote-containers",
+        "ms-vscode.live-server",
+        "trond-snekvik.simple-rst"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/opt/sct/python/envs/venv_sct/bin/python",
+        "python.terminal.activateEnvironment": true,
+        "python.terminal.activateEnvInCurrentTerminal": true,
+        "python.linting.enabled": true,
+        "python.linting.flake8Enabled": true,
+        "python.formatting.provider": "none",
+        "[python]": {
+          "editor.defaultFormatter": "ms-python.python",
+          "editor.formatOnSave": false,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        },
+        "pytest.showTerminalOnTestStart": false,
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "notebooks.codeLens.enabled": true,
+        "jupyter.notebookFileRoot": "${workspaceFolder}",
+        "terminal.integrated.profiles.linux": {
+          "bash (login)": {
+            "path": "/bin/bash",
+            "args": ["-l"]
+          }
+        },
+        "terminal.integrated.defaultProfile.linux": "bash (login)"
+      }
+    }
+  },
+
+  "containerEnv": {
+    "PROMPT_COMMAND": "history -a",
+    "HISTFILE": "/commandhistory/.bash_history",
+    "PROOT_NO_SECCOMP": "1"
+  },
+
+  "mounts": [
+    "source=spinalcordtoolbox-bashhistory,target=/commandhistory,type=volume"
+  ],
+
+  "onCreateCommand": {
+    "history": "sudo chmod ugo+rwx /commandhistory"
+  },
+  // Run post-creation command to install dependencies
+  "postCreateCommand": "pip install -e . --use-pep517 && pip install -e .[docs]",
+
+  // Forward ports if needed (e.g., for Jupyter or local development server)
+  "forwardPorts": [
+    8888  // Jupyter notebook
+  ],
+
+  // Use an init system to handle signals and zombie processes.
+  "init": true,
+
+  // Runtime allowances for Apptainer non-suid builds inside Dockerized devcontainers.
+  // Keep dedicated devcontainer properties where available and reserve runArgs for
+  // settings that do not have top-level devcontainer equivalents.
+
+  // Security options recommended for nested Apptainer usage.
+  "securityOpt": [
+    "seccomp=unconfined",
+    "systempaths=unconfined",
+    "apparmor=unconfined"
+  ],
+
+  // PRoot fallback path during build can require ptrace.
+  "capAdd": [
+    "SYS_PTRACE"
+  ],
+
+  // Keep runArgs minimal for options not modeled as top-level devcontainer properties:
+  // - /dev/fuse for unprivileged FUSE mounts.
+  // - PROOT_NO_SECCOMP=1 (set above) keeps PRoot seccomp from conflicting in nested runs.
+  "runArgs": [
+    "--device=/dev/fuse"
+  ]
+}

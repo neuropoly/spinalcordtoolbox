@@ -33,10 +33,9 @@ def check_dl_args(argv):
 
     if forbidden:
         raise ValueError(
-            "The following options cannot be used together with -dl (DL-based motion correction): "
-            + ", ".join(forbidden)
-            + "\nDL module does not support b-value threshold (-bvalmin), grouping (-g), "
-              "final interpolation (-x), or advanced ANTs parameters (-param)."
+            f"The following options cannot be used together with -dl (DL-based motion correction): {', '.join(forbidden)}\n"
+            "DL module does not support b-value threshold (-bvalmin), grouping (-g), final interpolation (-x), "
+            "or advanced ANTs parameters (-param)."
         )
 
 
@@ -192,7 +191,7 @@ def moco_dl(fname_data, fname_mask='', fname_ref='', path_out='', mode="fmri", f
     if mode == "dmri":
         args = ['-i', fname_moco_tmp, '-bvec', fname_bvecs, '-a', '1', '-v', '0']
         if fname_bvals:
-            args += ['-bval', fname_bvals]
+            args.extend(['-bval', fname_bvals])
         _, fname_b0_mean, _, fname_dwi_mean = sct_dmri_separate_b0_and_dwi.main(argv=args)
     else:
         fname_moco_mean = add_suffix(fname_moco_tmp, '_mean')

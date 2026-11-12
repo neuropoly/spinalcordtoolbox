@@ -156,7 +156,9 @@ def get_parser(ascor=False):
         metavar=Metavar.str,
         type=parse_num_list,
         default='',
-        help="Slice range to compute the metrics across. Example: `5:23`"
+        help="Slice range to compute the metrics across. Example: `5:23`. "
+             "Note: When using `-normalize-PAM50`, this argument refers to slices in the PAM50 template space, "
+             "since metrics are interpolated into PAM50 space before being aggregated."
     )
     optional.add_argument(
         '-perslice',
@@ -363,6 +365,11 @@ def get_parser(ascor=False):
             metavar=Metavar.str,
             help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
         )
+        optional.add_argument(
+            '-qc-contrast',
+            metavar=Metavar.str,
+            help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+        )
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -382,7 +389,7 @@ def _make_figure(metric, fit_results):
     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
     from matplotlib.figure import Figure
 
-    fname_img = tempfile.NamedTemporaryFile().name + '.png'
+    fname_img = f'{tempfile.NamedTemporaryFile().name}.png'
     z, csa, angle_ap, angle_rl = [], [], [], []
     for key, value in metric.items():
         z.append(key[0])
@@ -798,6 +805,7 @@ def main(argv: Sequence[str]):
     path_qc = arguments.qc
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
 
     fname_centerline = arguments.centerline
     param_centerline = ParamCenterline(
@@ -868,7 +876,7 @@ def main(argv: Sequence[str]):
         # Save array of the centerline in a .csv file if verbose == 2
         if verbose == 2:
             fname_ctl_csv, _ = splitext(add_suffix(arguments.i, '_centerline_extrapolated'))
-            np.savetxt(fname_ctl_csv + '.csv', centerline, delimiter=",")
+            np.savetxt(f'{fname_ctl_csv}.csv', centerline, delimiter=",")
     else:
         length_from_pmj = None
     # Aggregate metrics
@@ -892,7 +900,7 @@ def main(argv: Sequence[str]):
     if arguments.normalize is not None:
         data_subject = pd.DataFrame([arguments.normalize])
         path_model = os.path.join(__sct_dir__, 'data', 'csa_normalization_models',
-                                  '_'.join(sorted(data_subject.columns)) + '.csv')
+                                  f'{"_".join(sorted(data_subject.columns))}.csv')
         if not os.path.isfile(path_model):
             parser.error('Invalid choice of predictors in -normalize. Please specify sex and brain-volume or sex, brain-volume and thalamus-volume.')
         # Get normalization model
@@ -945,6 +953,7 @@ def main(argv: Sequence[str]):
                             path_qc=path_qc,
                             dataset=qc_dataset,
                             subject=qc_subject,
+                            contrast=qc_contrast,
                             process='sct_process_segmentation')
             else:
                 parser.error('-qc-image is required to display QC report.')
@@ -962,6 +971,7 @@ def main(argv: Sequence[str]):
                 path_qc=arguments.qc,
                 dataset=arguments.qc_dataset,
                 subject=arguments.qc_subject,
+                contrast=arguments.qc_contrast,
                 angle_qc=(verbose == 2),  # only output HOG angle plot if `-v 2` is passed
                 angle_type='angle_hog',
             )

@@ -25,6 +25,9 @@
 #  -c   Prevent checks from being run to validate the installation
 #  -v   Full verbose
 #
+# ENVIRONMENT
+#  MINIFORGE_CACHE_DIR: Optional path to a directory where the Miniforge installer will be cached. If not set, the installer will not be cached.
+#
 # Copyright (c) 2019 Polytechnique Montreal <www.neuro.polymtl.ca>
 # License: see the file LICENSE
 
@@ -649,14 +652,28 @@ fi
 
 # Download miniforge
 print info "Downloading Miniforge..."
+MINIFORGE_VERSION="26.7.2-1"  # keep in sync with the URLs below
+MINIFORGE_DEPOT_BASE_URL="https://github.com/conda-forge/miniforge/releases/download/${MINIFORGE_VERSION}"
 case $OS in
 linux)
-  download "$TMP_DIR/"miniforge.sh https://github.com/conda-forge/miniforge/releases/download/24.11.2-1/Miniforge3-Linux-x86_64.sh
+  MINIFORGE_ARTIFACT="Miniforge3-Linux-x86_64.sh"
   ;;
 osx)
-  download "$TMP_DIR/"miniforge.sh https://github.com/conda-forge/miniforge/releases/download/24.11.2-1/Miniforge3-MacOSX-x86_64.sh
+  MINIFORGE_ARTIFACT="Miniforge3-MacOSX-x86_64.sh"
   ;;
 esac
+
+MINIFORGE_CACHED="${MINIFORGE_CACHE_DIR:+${MINIFORGE_CACHE_DIR}/${MINIFORGE_VERSION}-${MINIFORGE_ARTIFACT}}"
+if [[ -n "${MINIFORGE_CACHED:-}" && -f "$MINIFORGE_CACHED" ]]; then
+  print info "Using cached Miniforge installer: $MINIFORGE_CACHED"
+  cp "$MINIFORGE_CACHED" "$TMP_DIR/miniforge.sh"
+else
+  download "$TMP_DIR/miniforge.sh" "${MINIFORGE_DEPOT_BASE_URL}/${MINIFORGE_ARTIFACT}"
+  if [[ -n "${MINIFORGE_CACHED:-}" ]]; then
+    mkdir -p "$(dirname "$MINIFORGE_CACHED")"
+    cp "$TMP_DIR/miniforge.sh" "$MINIFORGE_CACHED"
+  fi
+fi
 
 # Run conda installer
 print info "Installing Miniforge..."
@@ -695,8 +712,8 @@ find "$SCT_DIR/$PYTHON_DIR" -type f -exec touch {} +
 # * Fix details: https://github.com/conda/conda/issues/7173#issuecomment-980496682
 echo "include-system-site-packages = false" > "$SCT_DIR/$PYTHON_DIR/envs/venv_sct/pyvenv.cfg"
 
-# Skip pip==21.2 to avoid dependency resolver issue (https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3593)
-python/envs/venv_sct/bin/python -m pip install -U "pip!=21.2.*"
+# Avoid eMudhra / emSign certificates with >=26.2.2 (https://discuss.python.org/t/information-for-python-users-regarding-emudhra-emsign-ca-certificate-security-incident/109576/40)
+python/envs/venv_sct/bin/python -m pip install -U "pip>=26.2.2"
 
 ## Install the spinalcordtoolbox into the Conda venv
 print info "Installing Python dependencies..."

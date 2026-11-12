@@ -39,10 +39,10 @@ class ErnstAngle:
 
         printv("\nDrawing", type='info')
         plt.plot(tr_range, theta_E, linewidth=1.0)
-        plt.xlabel("TR (in $ms$)")
-        plt.ylabel("$\\Theta_E$ (in degree)")
+        plt.xlabel(r"TR (in $ms$)")
+        plt.ylabel(r"$\Theta_E$ (in degree)")
         plt.ylim(min(theta_E), max(theta_E) + 2)
-        plt.title("Ernst Angle with T1=" + str(self.t1) + "ms")
+        plt.title(f"Ernst Angle with T1={self.t1}ms")
         plt.grid(True)
 
         if self.tr is not None:
@@ -121,7 +121,7 @@ def main(argv: Sequence[str]):
 
     graph = ErnstAngle(input_t1, tr=input_tr, fname_output=input_fname_output)
     if input_tr is not None:
-        printv("\nValue of the Ernst Angle with T1=" + str(graph.t1) + "ms and TR=" + str(input_tr) + "ms :", verbose=verbose, type='info')
+        printv(f"\nValue of the Ernst Angle with T1={graph.t1}ms and TR={input_tr}ms :", verbose=verbose, type='info')
         printv(str(graph.getErnstAngle(input_tr)))
         # save text file
         f = open(fname_output_file, 'w')

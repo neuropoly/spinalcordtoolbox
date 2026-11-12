@@ -103,7 +103,7 @@ For a full overview of the available commands, see the `Command-Line Tools <http
 
 **2. Multi-command pipelines**
 
-To facilitate multi-subject analyses, commands can be chained together to build processing pipelines. The best starting point for constructing a typical pipeline is the `batch_processing.sh <https://spinalcordtoolbox.com/user_section/getting-started.html#batch-processing-example>`_ script, which is provided with your installation of SCT.
+To facilitate multi-subject analyses, commands can be chained together to build processing pipelines. The best starting point for constructing a typical pipeline is the `batch_single_subject.sh <https://spinalcordtoolbox.com/user_section/getting-started.html#batch-processing-example>`_ script, which is provided with your installation of SCT.
 
 **3. GUI (FSLeyes integration)**
 

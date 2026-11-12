@@ -34,7 +34,7 @@ This parameter determines the type of nonrigid deformation to apply to the spina
 :``algo=translation``: Axial (X-Y) translation.
 :``algo=rigid``: Axial (X-Y) translation + rotation about the Z axis.
 :``algo=affine``: Axial (X-Y) translation + rotation about the Z axis + axial (X-Y) scaling.
-:``algo=syn``: Symmetric image normalization (`SyN <https://pubmed.ncbi.nlm.nih.gov/17659998/>`_) provided by `ANTs <https://stnava.github.io/ANTs/>`_.
+:``algo=syn``: Symmetric image normalization (`SyN <https://doi.org/10.1016/j.media.2007.06.004>`_) provided by `ANTs <https://stnava.github.io/ANTs/>`_.
 :``algo=b-splinesyn``: B-Spline regularized form of SyN provided by `ANTs <https://stnava.github.io/ANTs/>`_.
 :``algo=slicereg``: Slice-by-slice axial (X-Y) translation, regularized along the Z axis. This can be used as both an initial alignment of a segmented cord centerline, or to align the centers of two images that are already close.
 :``algo=centermassrot``: An alignment of the center of mass of the segmented cord with the center of mass of the template. Similar to ``algo=slicereg``, but also includes rotation, to account for a turned cord due to e.g. compression on one side of the cord.
@@ -90,3 +90,20 @@ This argument is used to specify disc labels, rather than vertebral body labels.
 :Tiny field of view: Conversely, if you have a very small field of view (e.g., covering only C3/C4), you can create a unique label at disc C3/C4 (value=4) and use ``-ldisc`` for registration. In that case, a single translation (no scaling) will be performed between the template and the subject.
 
 Disc labels can be created using :ref:`sct_deepseg_spine`.
+
+----
+
+Sample customized registration commands
+***************************************
+
+Disc-based registration (large FOV):
+
+.. code:: sh
+
+   sct_register_to_template -i t2.nii.gz -s t2_seg.nii.gz -ldisc t2_totalspineseg_discs.nii.gz -c t2
+
+Advanced parameters:
+
+.. code:: sh
+
+   sct_register_to_template -i t2.nii.gz -s t2_seg.nii.gz -ldisc t2_labels_vert.nii.gz -qc ~/qc_singleSubj -ofolder advanced_param -c t2 -param step=1,type=seg,algo=rigid:step=2,type=seg,metric=CC,algo=bsplinesyn,slicewise=1,iter=3:step=3,type=im,metric=CC,algo=syn,slicewise=1,iter=2

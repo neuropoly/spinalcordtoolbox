@@ -199,7 +199,7 @@ def deep_segmentation_MSlesion(im_image, contrast_type, ctr_algo='svm', ctr_file
     # segment data using 3D convolutions
     logger.info("\nSegmenting the MS lesions using deep learning on 3D patches...")
     segmentation_model_fname = sct_dir_local_path('data', 'deepseg_lesion_models',
-                                                  '{}_lesion.onnx'.format(contrast_type))
+                                                  f'{contrast_type}_lesion.onnx')
     fname_seg_crop_res = add_suffix(fname_res3d, '_lesionseg')
     im_res3d = Image(fname_res3d)
     seg_im = segment_3d(model_fname=segmentation_model_fname,

@@ -191,7 +191,7 @@ class Slicer(object):
             raise NotImplementedError()
 
         if idx >= self._nb_slices:
-            raise IndexError("I just have {} slices!".format(self._nb_slices))
+            raise IndexError(f"I just have {self._nb_slices} slices!")
 
         return self._data[:, :, idx]
 
@@ -246,7 +246,7 @@ class SlicerOneAxis(object):
             raise NotImplementedError()
 
         if idx >= self.nb_slices:
-            raise IndexError("I just have {} slices!".format(self.nb_slices))
+            raise IndexError(f"I just have {self.nb_slices} slices!")
 
         if self.direction == -1:
             idx = self.nb_slices - 1 - idx
@@ -290,8 +290,7 @@ def check_affines_match(im):
         hdr2.set_qform(hdr.get_sform())
     except np.linalg.LinAlgError:
         # See https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3097
-        logger.warning("The sform for {} is uninitialized and may cause unexpected behaviour."
-                       ''.format(im.absolutepath))
+        logger.warning(f"The sform for {im.absolutepath} is uninitialized and may cause unexpected behaviour.")
 
         if im.absolutepath is None:
             logger.error("Internal code has produced an image with an uninitialized sform. "
@@ -902,7 +901,7 @@ def compute_dice(image1, image2, mode='3d', label=1, zboundaries=False):
     """
     MODES = ['3d', '2d-slices']
     if mode not in MODES:
-        raise ValueError('\n\nERROR: mode must be one of these values:' + ',  '.join(MODES))
+        raise ValueError(f'\n\nERROR: mode must be one of these values:{",  ".join(MODES)}')
 
     dice = 0.0  # default value of dice is 0
 
@@ -1293,7 +1292,7 @@ def change_type(im_src, dtype, im_dst=None):
             if min_in >= 0:  # unsigned
                 if max_in <= np.iinfo(np.uint8).max:
                     dtype = np.uint8
-                elif max_in <= np.iinfo(np.uint16):
+                elif max_in <= np.iinfo(np.uint16).max:
                     dtype = np.uint16
                 elif max_in <= np.iinfo(np.uint32).max:
                     dtype = np.uint32
@@ -1363,7 +1362,7 @@ def to_dtype(dtype):
     if isinstance(dtype, str):
         return np.dtype(dtype)
 
-    raise TypeError("data type {}: {} not understood".format(dtype.__class__, dtype))
+    raise TypeError(f"data type {dtype.__class__}: {dtype} not understood")
 
 
 def zeros_like(img, dtype=None):
@@ -1487,7 +1486,7 @@ def split_img_data(src_img: Image, dim, squeeze_data=True):
             im_out.data = dat.reshape(tuple([x for (idx_shape, x) in enumerate(data.shape) if idx_shape != dim]))
         else:
             im_out.data = dat
-        im_out.absolutepath = add_suffix(src_img.absolutepath, "_{}{}".format(dim_list[dim].upper(), str(idx_img).zfill(4)))
+        im_out.absolutepath = add_suffix(src_img.absolutepath, f"_{dim_list[dim].upper()}{idx_img:04}")
         im_out_list.append(im_out)
 
     return im_out_list

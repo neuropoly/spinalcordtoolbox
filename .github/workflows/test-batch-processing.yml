@@ -1,10 +1,7 @@
-name: Test batch_processing.sh
+name: Test batch_single_subject.sh
 
 on:
   workflow_dispatch:
-  pull_request:
-    branches:
-      - '*'
   schedule:
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
     # > Scheduled workflows run on the latest commit on the default or base branch
@@ -20,8 +17,8 @@ env:
   SCT_PROGRESS_BAR: "off"
 
 jobs:
-  batch_processing:
-    name: Test batch_processing.sh
+  batch_single_subject:
+    name: Test batch_single_subject.sh
     strategy:
       fail-fast: false
       matrix:
@@ -71,28 +68,29 @@ jobs:
       - name: Check dependencies
         run: sct_check_dependencies
 
-      - name: Run batch_processing.sh
-        run: bash batch_processing.sh
+      - name: Run batch_single_subject.sh (local copy)
+        run: |
+          bash "$SCT_DIR/batch_single_subject.sh"
 
       - name: Upload QC results
         uses: actions/upload-artifact@v7
         with:
           name: Batch Processing QC (${{ matrix.os }})
-          path: "qc_example_data"
+          path: /home/runner/qc_singleSubj
 
-      - name: "Upload CSV files for easier batch_processing.sh updating"
+      - name: "Upload CSV files for easier batch_single_subject.sh updating"
         uses: actions/upload-artifact@v7
         with:
           name: Batch Processing CSV files (${{ matrix.os }})
-          path: data/sct_example_data/**/*.csv
+          path: data/sct_course_data/single_subject/data/**/*.csv
 
       - name: Validate new results
         run: |
           # Auto-pass macOS as it would fail due to https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3194
           if [ "$RUNNER_OS" == "macOS" ]; then
-               sct_testing testing/batch_processing/test_batch_processing.py || exit 0
+               sct_testing testing/batch_single_subject/test_batch_single_subject.py || exit 0
           else
-               sct_testing testing/batch_processing/test_batch_processing.py
+               sct_testing testing/batch_single_subject/test_batch_single_subject.py
           fi
 
       - name: Rename and move folder summaries for easier download
@@ -102,19 +100,19 @@ jobs:
         if: always()
         run: |
           mkdir jsons
-          mv testing/sct_example_data.json jsons/sct_example_data_${{ matrix.os }}.json
+          mv testing/sct_course_data.json jsons/sct_course_data_${{ matrix.os }}.json
 
       - name: Upload folder summary
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: sct_example_data_${{ matrix.os }}.json
+          name: sct_course_data_${{ matrix.os }}.json
           path: jsons
 
   compare-results:
     name: Compare cross-platform results
     runs-on: ubuntu-24.04
-    needs: batch_processing
+    needs: batch_single_subject
     env:
       YDIFF_VERSION: "1.5"
       YDIFF_OPTIONS: "--side-by-side --pager=cat --color=always --width=120 --nowrap"
@@ -149,7 +147,7 @@ jobs:
       - name: Download summaries (master branch)
         uses: actions/download-artifact@v8
         with:
-          pattern: sct_example_data_*.json
+          pattern: sct_course_data_*.json
           merge-multiple: true
           path: artifacts_master
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -166,7 +164,7 @@ jobs:
             # Full log output
             echo "::group::Diff for $os"
             # diff will throw exit code 1 if diff is non-empty, so use '|| true' to prevent the job from failing
-            diff -u "artifacts_master/sct_example_data_$os.json" "artifacts/sct_example_data_$os.json" > $DIFF_FILE || true
+            diff -u "artifacts_master/sct_course_data_$os.json" "artifacts/sct_course_data_$os.json" > $DIFF_FILE || true
             ydiff < $DIFF_FILE
             echo "::endgroup::"
           
@@ -174,7 +172,7 @@ jobs:
             if [ -e "$DIFF_FILE" ] && [ ! -s "$DIFF_FILE" ]; then
                 echo "Hurrah! $DIFF_FILE is empty, so there's no difference between this PR and master."
             else
-                WARNING_TITLE="batch_processing.sh results diff with master - $os"
+                WARNING_TITLE="batch_single_subject.sh results diff with master - $os"
                 if [ ! -e "$DIFF_FILE" ]; then
                     WARNING_MSG="$DIFF_FILE is missing. Did diff fail?"
                 else

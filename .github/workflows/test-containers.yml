@@ -1,0 +1,57 @@
+name: Test containers
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: '*'
+  schedule:
+    # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
+    # > Scheduled workflows run on the latest commit on the default or base branch
+    # i.e. this can only run on master
+    # NB: 8AM UTC every day corresponds to 3AM/4AM depending on DST
+    - cron:  '0 8 * * *'
+
+env:
+    # Turns on color output for pytest. See: https://github.com/pytest-dev/pytest/issues/7443#issuecomment-656642591
+    PY_COLORS: "1"
+    # Disable progress bars for less verbose output
+    PIP_PROGRESS_BAR: "off"
+    SCT_PROGRESS_BAR: "off"
+
+# Ensure no write permissions are given to the workflow, for hardened security when running changes from forks
+permissions: {}
+
+jobs:
+  containers:
+    # NB: The eWaterCycle/setup-apptainer action is not yet compatible with Ubuntu 26.04
+    # See: https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/5344
+    name: Docker+Apptainer (Ubuntu 24.04)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Extract SCT current dev version to Github env
+        run: |
+          export SCT_VERSION=$(cat spinalcordtoolbox/version.txt)
+          echo "SCT_VERSION=$SCT_VERSION" >> "$GITHUB_ENV"
+      - name: Build Docker and Apptainer images
+        uses: ./.github/actions/build-containers
+        id: build-containers
+        with:
+          tag: ${{ env.SCT_VERSION }}
+          push: false
+          load: true
+          build-args: "DEEPSEG_TASKS=spinalcord,spine,gm_sc_7t_t2star"
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-token: ${{ secrets.DOCKER_RO_PAT }}
+      - name: Download sample data
+        run: |
+          curl -sL "https://github.com/spinalcordtoolbox/sct_tutorial_data/archive/refs/tags/SCT-Course-20251208.tar.gz" | tar -z -xf -
+      - name: Run 'sct_deepseg spinalcord' (installed by default)
+        run: |
+          apptainer exec ${{ steps.build-containers.outputs.apptainer-image }} sct_deepseg spinalcord -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2/t2.nii.gz
+      - name: Run 'sct_deepseg spine' (added on install)
+        run: |          
+          apptainer exec ${{ steps.build-containers.outputs.apptainer-image }} sct_deepseg spine -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2/t2.nii.gz
+      - name: Run 'sct_deepseg gm_sc_7t_t2star' (added on install)
+        run: |          
+          apptainer exec ${{ steps.build-containers.outputs.apptainer-image }} sct_deepseg gm_sc_7t_t2star -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2s/t2s.nii.gz

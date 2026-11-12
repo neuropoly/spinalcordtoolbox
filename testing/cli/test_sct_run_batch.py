@@ -205,12 +205,12 @@ def test_config_extra_value_warning(tmp_path, dummy_script):
     config_path = str(tmp_path / 'config.yml')
 
     with open(config_path, 'w') as config:
-        cnf_text = """
+        cnf_text = f"""
         jobs: 1
-        path_data: {}
-        path_output: {}
+        path_data: {data}
+        path_output: {out}
         unknowable: unknown
-        """.format(data, out)
+        """
         config.write(dedent(cnf_text))
         config.flush()
 

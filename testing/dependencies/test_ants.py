@@ -75,7 +75,7 @@ def test_ants_registration():
     # # Concatenate rigid and non-linear transformations...
     # printv('\nConcatenate rigid and non-linear transformations...', verbose)
     # cmd = 'isct_ComposeMultiTransform 3 warp_curve2straight.nii.gz -R data_dest.nii.gz warp_curve2straight_intermediate.nii.gz curve2straight_rigid.txt'
-    # printv('>> '+cmd, verbose)
+    # printv(f'>> {cmd}', verbose)
     # run_proc(cmd)
     #
     # # Apply deformation to input image
@@ -92,7 +92,7 @@ def test_ants_registration():
     ])
     with open("dice.txt", "r") as file_dice:
         dice = float(file_dice.read().replace('3D Dice coefficient = ', ''))
-    printv('Dice coeff = ' + str(dice) + ' (should be above ' + str(dice_acceptable) + ')', verbose)
+    printv(f'Dice coeff = {dice} (should be above {dice_acceptable})', verbose)
 
     # come back
     os.chdir(curdir)

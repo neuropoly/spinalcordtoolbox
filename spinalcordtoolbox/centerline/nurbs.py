@@ -101,8 +101,8 @@ class NURBS:
                 nb_points = len(P_x)
                 if self.nbControle > nb_points - 1:
                     raise ArithmeticError('There are too few points to compute. The number of points of the curve must '
-                                          'be strictly superior to degre + 2, in this case: ' + str(self.nbControle)
-                                          + '. Either change degree to a lower value, or add points to the curve.')
+                                          f'be strictly superior to degre + 2, in this case: {self.nbControle}. '
+                                          'Either change degree to a lower value, or add points to the curve.')
 
                 # compute weights based on curve density
                 w = [1.0] * len(P_x)
@@ -134,7 +134,7 @@ class NURBS:
                     last_error_curve = error_curve
 
                     # compute the nurbs based on input data and number of controle points
-                    logger.debug('Test: # of control points = ' + str(self.nbControle))
+                    logger.debug(f'Test: # of control points = {self.nbControle}')
                     try:
                         if not twodim:
                             self.pointsControle = self.reconstructGlobalApproximation(P_x, P_y, P_z, self.degre,
@@ -210,9 +210,9 @@ class NURBS:
                                  "the best results. \nDifference between fitted NURBS curve and input data = {} mm".
                                  format(nbControle_that_last_worked, np.round(self.error_curve_that_last_worked, 2)))
                 else:
-                    logger.debug('Number of control points of the optimal NURBS = {}'.format(self.nbControle))
+                    logger.debug(f'Number of control points of the optimal NURBS = {self.nbControle}')
             else:
-                logger.debug('In NURBS we get nurbs_ctl_points = {}'.format(nbControl))
+                logger.debug(f'In NURBS we get nurbs_ctl_points = {nbControl}')
                 w = [1.0] * len(P_x)
                 self.nbControl = nbControl  # increase nbeControle if "short data"
                 if not twodim:
@@ -253,7 +253,6 @@ class NURBS:
         return result
 
     def N(self, i, k, x):
-        global Nik_temp
         if k == 1:
             tab = [[np.poly1d(1), i + 1]]
         else:
@@ -274,7 +273,6 @@ class NURBS:
         return tab
 
     def Np(self, i, k, x):
-        global Nik_temp_deriv, Nik_temp
         if k == 1:
             tab = [[np.poly1d(0), i + 1]]
         else:
@@ -948,7 +946,7 @@ def getSize(x, y, z, file_name=None):
     s = 0
     for i in range(len(x) - 1):
         s += sqrt((p1 * (x[i + 1] - x[i]))**2 + (p2 * (y[i + 1] - y[i]))**2 + (p3 * (z[i + 1] - z[i])**2))
-    logger.debug('Centerline size: {}'.format(s))
+    logger.debug(f'Centerline size: {s}')
     return s
 
 

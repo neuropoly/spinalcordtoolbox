@@ -87,7 +87,7 @@ def test_sct_dmri_moco_dl(tmp_path, dmri_mask, tmp_path_qc, dmri_mean_seg, ref):
             '-m', dmri_mask, '-ofolder', str(tmp_path), '-dl',
             '-qc', tmp_path_qc, '-qc-seg', dmri_mean_seg]
     if ref:
-        argv += ['-ref', sct_test_path('dmri', 'dwi_mean.nii.gz')]
+        argv.extend(['-ref', sct_test_path('dmri', 'dwi_mean.nii.gz')])
     sct_dmri_moco.main(argv=argv)
 
     def build_disp_from_params(fname_tx, fname_ty, fname_ref, fname_warp):

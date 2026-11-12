@@ -8,13 +8,13 @@ Notable changes include:
 > 
 > 1. Go to [this GitHub Actions page](https://github.com/spinalcordtoolbox/spinalcordtoolbox/actions/workflows/test-batch-processing.yml?query=branch%3Amaster+event%3Apush).
 > 2. Click through to the run corresponding to the recently-merged changelog PR.
-> 3. For each OS, click on "Run batch_processing.sh" step
+> 3. For each OS, click on "Run batch_single_subject.sh" step
 > 4. Scroll all the way to the bottom. (Use the "End" keyboard shortcut to make this easy!)
 > 5. Copy and paste the text in between the ~~~ characters.
 > 6. Once the results from all OSs have been pasted, remove this block of text.
 
 <details>
-<summary>Results of <code>batch_processing.sh</code> on Ubuntu 22.04</summary>
+<summary>Results of <code>batch_single_subject.sh</code> on Ubuntu 22.04</summary>
 
 ```
 ~~~
@@ -34,7 +34,7 @@ dmri/fa_in_cst.csv:
 </details>
 
 <details>
-<summary>Results of <code>batch_processing.sh</code> on macOS 13 (Ventura)</summary>
+<summary>Results of <code>batch_single_subject.sh</code> on macOS 13 (Ventura)</summary>
 
 ```
 ~~~
@@ -54,7 +54,7 @@ dmri/fa_in_cst.csv:
 </details>
 
 <details>
-<summary>Results of <code>batch_processing.sh</code> on Windows 2022</summary>
+<summary>Results of <code>batch_single_subject.sh</code> on Windows 2022</summary>
 
 ```
 ~~~

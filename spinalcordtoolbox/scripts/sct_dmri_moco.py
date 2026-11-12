@@ -43,7 +43,7 @@ def get_parser():
 
     parser = SCTArgumentParser(
         description=textwrap.dedent("""
-            Motion correction of dMRI data. Some of the features to improve robustness were proposed in Xu et al. (https://dx.doi.org/10.1016/j.neuroimage.2012.11.014) and include:
+            Motion correction of dMRI data. Some of the features to improve robustness were proposed in Xu et al. (https://doi.org/10.1016/j.neuroimage.2012.11.014) and include:
 
               - group-wise (`-g`)
               - slice-wise regularized along z using polynomial function (`-param poly`). For more info about the method, type: `isct_antsSliceRegularizedRegistration`
@@ -170,6 +170,11 @@ def get_parser():
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
     optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
+    optional.add_argument(
         '-dl',
         action='store_true',
         help="Use deep learning–based motion correction (DenseNet).\n"
@@ -215,6 +220,7 @@ def main(argv: Sequence[str]):
     qc_fps = arguments.qc_fps
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
     qc_seg = arguments.qc_seg
 
     mutually_inclusive_args = (path_qc, qc_seg)
@@ -248,7 +254,7 @@ def main(argv: Sequence[str]):
     if path_qc is not None:
         generate_qc(fname_in1=fname_output_image, fname_in2=param.fname_data, fname_seg=qc_seg,
                     args=argv, path_qc=os.path.abspath(path_qc), fps=qc_fps, dataset=qc_dataset,
-                    subject=qc_subject, process='sct_dmri_moco')
+                    subject=qc_subject, contrast=qc_contrast, process='sct_dmri_moco')
 
     display_viewer_syntax([fname_output_image, param.fname_data], mode='ortho,ortho', verbose=verbose)
 

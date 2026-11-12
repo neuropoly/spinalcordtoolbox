@@ -109,7 +109,7 @@ def compute_dti(fname_in, fname_bvals, fname_bvecs, prefix, method, evecs, file_
     from spinalcordtoolbox.image import Image
     nii = Image(fname_in)
     data = nii.data
-    printv('data.shape (%d, %d, %d, %d)' % data.shape)
+    printv(f'data.shape {data.shape}')
 
     # open bvecs/bvals
     from dipy.io import read_bvals_bvecs
@@ -125,7 +125,7 @@ def compute_dti(fname_in, fname_bvals, fname_bvecs, prefix, method, evecs, file_
         mask = nii_mask.data
 
     # fit tensor model
-    printv('Computing tensor using "' + method + '" method...', verbose)
+    printv(f'Computing tensor using "{method}" method...', verbose)
     import dipy.reconst.dti as dti
     if method == 'standard':
         tenmodel = dti.TensorModel(gtab)
@@ -146,25 +146,25 @@ def compute_dti(fname_in, fname_bvals, fname_bvecs, prefix, method, evecs, file_
     printv('Computing metrics...', verbose)
     # FA
     nii.data = tenfit.fa
-    nii.save(prefix + 'FA.nii.gz', dtype='float32')
+    nii.save(f'{prefix}FA.nii.gz', dtype='float32')
     # MD
     nii.data = tenfit.md
-    nii.save(prefix + 'MD.nii.gz', dtype='float32')
+    nii.save(f'{prefix}MD.nii.gz', dtype='float32')
     # RD
     nii.data = tenfit.rd
-    nii.save(prefix + 'RD.nii.gz', dtype='float32')
+    nii.save(f'{prefix}RD.nii.gz', dtype='float32')
     # AD
     nii.data = tenfit.ad
-    nii.save(prefix + 'AD.nii.gz', dtype='float32')
+    nii.save(f'{prefix}AD.nii.gz', dtype='float32')
     if evecs:
         data_evecs = tenfit.evecs
         data_evals = tenfit.evals
         # output 1st (V1), 2nd (V2) and 3rd (V3) eigenvectors as 4d data
         for idim in range(3):
             nii.data = data_evecs[:, :, :, :, idim]
-            nii.save(prefix + 'V' + str(idim + 1) + '.nii.gz', dtype="float32")
+            nii.save(f'{prefix}V{idim + 1}.nii.gz', dtype="float32")
             nii.data = data_evals[:, :, :, idim]
-            nii.save(prefix + 'E' + str(idim + 1) + '.nii.gz', dtype="float32")
+            nii.save(f'{prefix}E{idim + 1}.nii.gz', dtype="float32")
 
     return True
 

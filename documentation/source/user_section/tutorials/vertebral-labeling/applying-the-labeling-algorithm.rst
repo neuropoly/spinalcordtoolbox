@@ -51,3 +51,15 @@ This model can be slow on large volumes. Processing time can often be reduced by
    :align: center
 
    Input/output images for :ref:`sct_deepseg_spine`
+
+
+Optional: Convert the disc labels into a labeled segmentation
+=============================================================
+
+We recommend to use disc labels directly for any subsequent steps (e.g. morphometric/CSA calculations). However, if you wish to use the legacy SCT analysis workflow, you can use the disc labels to generate a labeled segmentation using the following command:
+
+.. code::
+
+   sct_label_vertebrae -i t2.nii.gz -s t2_seg.nii.gz -c t2 -discfile t2_totalspineseg_discs.nii.gz
+
+This 'labeled segmentation' consists of the spinal cord mask labeled with vertebrae corresponding to the regions between intervertebral discs, projected onto the spinal cord.

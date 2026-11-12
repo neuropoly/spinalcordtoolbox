@@ -137,8 +137,8 @@ def main(argv: Sequence[str]):
             den = nlmeans.nlmeans(data, sigma=sigma, mask=mask, rician=False, block_radius=block_radius)
 
     t = time()
-    printv("total time: %s" % (time() - t))
-    printv("vol size", den.shape)
+    printv(f"total time: {time() - t}")
+    printv(f"vol size {den.shape}")
 
     axial_middle = int(data.shape[2] / 2)
 
@@ -170,9 +170,9 @@ def main(argv: Sequence[str]):
     if output_file_name is not None:
         output_file_name = output_file_name
     else:
-        output_file_name = file + '_denoised' + ext
+        output_file_name = f'{file}_denoised{ext}'
     img_denoise.save(output_file_name)
-    img_diff.save(file + '_difference' + ext)
+    img_diff.save(f'{file}_difference{ext}')
 
     display_viewer_syntax(files=[file_to_denoise, output_file_name], verbose=verbose)
 

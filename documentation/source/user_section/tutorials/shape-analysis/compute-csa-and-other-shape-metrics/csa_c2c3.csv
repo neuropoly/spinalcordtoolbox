@@ -1,0 +1,2 @@
+Filename,Slice (I->S),VertLevel,MEAN(area),STD(area)
+single_subject/data/t2/t2_seg.nii.gz,169:207,2:3,72.52824159053692,1.9432584239367559

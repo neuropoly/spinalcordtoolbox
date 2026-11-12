@@ -76,12 +76,25 @@ Now that we have a spinal cord segmentation in the space of the fMRI data, we ca
 
 .. code::
 
-   sct_create_mask -i fmri.nii.gz -p centerline,t2_seg_reg.nii.gz -size 35mm
+   sct_create_mask -i fmri.nii.gz -p centerline,t2_seg_reg.nii.gz -size 35mm -f cylinder
 
 :Input arguments:
    - ``-i`` : The input image to create the mask from.
    - ``-p`` : The process used to position the mask. The ``centerline`` process will compute the center of mass for each slice of ``t2_seg_reg.nii.gz``, then use those locations to center of the mask at each slice.
    - ``-size``: The diameter of the mask.
+   - ``-f``: Shape of the mask. This is ``cylinder`` by default, but other shapes can be specified instead.
 
 :Output files/folders:
    - ``mask_fmri.nii.gz`` : An imagine containing a mask surrounding the spinal cord.
+
+
+..
+   FIXME: Find a place in the tutorials to insert these commands. Perhaps rework the
+   tutorial to use the `sc_epi` seg rather than the warped T2 seg?
+
+   .. code::
+
+      # Crop extraneous tissue using the t2-based mask generated earlier
+      sct_crop_image -i fmri_moco_mean.nii.gz -m mask_fmri.nii.gz -b 0
+      # Segment the cord using the cropped image
+      sct_deepseg sc_epi -i fmri_moco_mean_crop.nii.gz -qc ~/qc_singleSubj

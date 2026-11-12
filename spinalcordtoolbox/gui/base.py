@@ -72,7 +72,7 @@ class AnatomicalParams(object):
     @property
     def dialog_title(self):
         if not self._title:
-            self._title = '{}: manual labeling'.format(self.input_file_name)
+            self._title = f'{self.input_file_name}: manual labeling'
         return self._title
 
     @property
@@ -233,8 +233,8 @@ class BaseDialog(QtWidgets.QWidget):
         else:
             cmd_key = 'Ctrl'
 
-        self.btn_ok = QtWidgets.QPushButton('Save and Quit [%s+S]' % cmd_key)
-        self.btn_undo = QtWidgets.QPushButton('Undo [%s+Z]' % cmd_key)
+        self.btn_ok = QtWidgets.QPushButton(f'Save and Quit [{cmd_key}+S]')
+        self.btn_undo = QtWidgets.QPushButton(f'Undo [{cmd_key}+Z]')
 
         ctrl_layout.addStretch()
         ctrl_layout.addWidget(self.btn_undo)
@@ -318,7 +318,7 @@ class BaseController(object):
         with the image.
 
         """
-        logger.debug('Image orientation {}'.format(self.image.orientation))
+        logger.debug(f'Image orientation {self.image.orientation}')
         self.orientation = self.image.orientation
         self.image.change_orientation('SAL')
 
@@ -344,7 +344,7 @@ class BaseController(object):
         return False
 
     def save(self):
-        logger.debug('Overlay shape {}'.format(self._overlay_image.data.shape))
+        logger.debug(f'Overlay shape {self._overlay_image.data.shape}')
 
         for point in self.points:
             x, y, z, label = [int(i) for i in point]
@@ -362,7 +362,7 @@ class BaseController(object):
             self.position = Position(x, y, z)
             self.points = self.points[:-1]
             self.label = label
-            logger.debug('Point removed {}'.format(self.position))
+            logger.debug(f'Point removed {self.position}')
         else:
             raise InvalidActionWarning('There is no points selected to undo')
 
@@ -374,7 +374,7 @@ class BaseController(object):
         data = self._overlay_image.data
         xs, ys, zs = np.where(data)
         for x, y, z in zip(xs, ys, zs):
-            output.append('{},{},{},{}'.format(x, y, z, int(data[x, y, z])))
+            output.append(f'{x},{y},{z},{int(data[x, y, z])}')
         return ':'.join(output)
 
     def as_niftii(self, file_name=None):
@@ -387,7 +387,7 @@ class BaseController(object):
         if self._overlay_image.absolutepath == self.image.absolutepath:
             raise IOError('Aborting: the original file and the labeled file are the same', self._overlay_image.absolutepath)
 
-        logger.debug('Data: {}'.format(np.where(self._overlay_image.data)))
+        logger.debug(f'Data: {np.where(self._overlay_image.data)}')
         self._overlay_image.save()
 
 

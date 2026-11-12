@@ -74,7 +74,7 @@ class InfoLabel(object):
             if section == 'IndivLabels':
                 m = re.match(r"^(?P<id>\d+), (?P<name>.*), (?P<filename>.*)$", line)
                 if m is None:
-                    raise ValueError("Unexpected at line {}, in IndivLabels section: {}".format(idx_line+1, line))
+                    raise ValueError(f"Unexpected at line {idx_line+1}, in IndivLabels section: {line}")
 
                 _id = int(m.group("id"))
                 _name = m.group("name")
@@ -82,14 +82,14 @@ class InfoLabel(object):
 
                 if verify and parent is not None:
                     if not os.path.exists(os.path.join(parent, _filename)):
-                        raise ValueError("Unexpected at line {}, specifying file {} which doesn't exist: {}".format(idx_line+1, _filename, line))
+                        raise ValueError(f"Unexpected at line {idx_line+1}, specifying file {_filename} which doesn't exist: {line}")
 
                 self._indiv_labels.append((_id, _name, _filename))
 
             elif section == 'CombinedLabels':
                 m = re.match(r"^(?P<id>\d+), (?P<name>.*), (?P<group>.*)$", line)
                 if m is None:
-                    raise ValueError("Unexpected at line {}, in CombinedLabels section: {}".format(idx_line+1, line))
+                    raise ValueError(f"Unexpected at line {idx_line+1}, in CombinedLabels section: {line}")
 
                 _id = int(m.group("id"))
                 _name = m.group("name")
@@ -97,26 +97,26 @@ class InfoLabel(object):
                 try:
                     _group = parse_num_list(m.group("group"))
                 except ValueError as e:
-                    raise ValueError("Unexpected at line {}: {} in line: {}".format(idx_line+1, e, line))
+                    raise ValueError(f"Unexpected at line {idx_line+1}: {e} in line: {line}")
 
                 self._combined_labels.append((_id, _name, _group))
 
             elif section == 'MAPLabels':
                 m = re.match(r"^(?P<name>.*), (?P<group>.*)$", line)
                 if m is None:
-                    raise ValueError("Unexpected at line {}, in MAPLabels section: {}".format(idx_line+1, line))
+                    raise ValueError(f"Unexpected at line {idx_line+1}, in MAPLabels section: {line}")
 
                 _name = m.group("name")
 
                 try:
                     _group = parse_num_list(m.group("group"))
                 except ValueError as e:
-                    raise ValueError("Unexpected at line {}: {} in line: {}".format(idx_line+1, e, line))
+                    raise ValueError(f"Unexpected at line {idx_line+1}: {e} in line: {line}")
 
                 self._clusters_apriori.append((_name, _group))
 
             else:
-                raise ValueError("Unexpected at line {}, unparsed data: {}".format(idx_line+1, line))
+                raise ValueError(f"Unexpected at line {idx_line+1}, unparsed data: {line}")
 
     def save(self, file, header=None):
         """
@@ -132,15 +132,15 @@ class InfoLabel(object):
 
         def w(x):
             # Writer in bytes encoding (for py3k compatibility)
-            file.write(b"%s\n" % bytes(x.encode()))
+            file.write(x.encode() + b'\n')
 
         if header is not None:
-            w("# %s" % header)
+            w(f"# {header}")
 
         w("# Keyword=IndivLabels (Please DO NOT change this line)")
         w("# ID, name, file")
         for _id, _name, _filename in self._indiv_labels:
-            w("{}, {}, {}".format(_id, _name, _filename))
+            w(f"{_id}, {_name}, {_filename}")
 
         if self._combined_labels:
             w("")
@@ -149,7 +149,7 @@ class InfoLabel(object):
             w("# ID, name, IDgroup")
             for _id, _name, _group in self._combined_labels:
                 group_str = ",".join([str(x) for x in _group])  # could be shortened
-                w("{}, {}, {}".format(_id, _name, group_str))
+                w(f"{_id}, {_name}, {group_str}")
 
         if self._clusters_apriori:
             w("")
@@ -158,7 +158,7 @@ class InfoLabel(object):
             w("# Name, IDgroup")
             for _name, _group in self._clusters_apriori:
                 group_str = ",".join([str(x) for x in _group])  # could be shortened
-                w("{}, {}".format(_name, group_str))
+                w(f"{_name}, {group_str}")
 
 
 def read_label_file(path_info_label, file_info_label):
@@ -211,7 +211,7 @@ def get_file_label(path_label='', id_label=0, output='file'):
             elif output == 'filewithpath':
                 return os.path.join(path_label, _file)
 
-    raise RuntimeError("Label ID {} not found in {}".format(id_label, fname_label))
+    raise RuntimeError(f"Label ID {id_label} not found in {fname_label}")
 
 
 def get_indiv_label_info(directory):

@@ -156,6 +156,11 @@ def get_parser():
         metavar=Metavar.str,
         help='If provided, this string will be mentioned in the QC report as the subject the '
              'process was run on')
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help='If provided, this string will be mentioned in the QC report as the contrast the '
+             'process was run on')
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -241,15 +246,17 @@ def main(argv: Sequence[str]):
 
     fname_straight = sc_straight.straighten()
 
-    printv("\nFinished! Elapsed time: {} s".format(sc_straight.elapsed_time), verbose)
+    printv(f"\nFinished! Elapsed time: {sc_straight.elapsed_time} s", verbose)
 
     # Generate QC report
     if path_qc is not None:
         path_qc = os.path.abspath(path_qc)
         qc_dataset = arguments.qc_dataset
         qc_subject = arguments.qc_subject
+        qc_contrast = arguments.qc_contrast
         generate_qc(fname_straight, args=argv, path_qc=os.path.abspath(path_qc),
-                    dataset=qc_dataset, subject=qc_subject, process=os.path.basename(__file__).removesuffix(".py"))
+                    dataset=qc_dataset, subject=qc_subject, contrast=qc_contrast,
+                    process=os.path.basename(__file__).removesuffix(".py"))
 
     display_viewer_syntax([fname_straight], verbose=verbose)
 

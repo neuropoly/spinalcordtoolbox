@@ -115,6 +115,10 @@ def get_parser():
         '-qc-subject',
         metavar=Metavar.str,
         help='If provided, this string will be mentioned in the QC report as the subject the process was run on',)
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on.",)
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -136,6 +140,7 @@ def main(argv: Sequence[str]):
     path_qc = arguments.qc
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
 
     # Check dimensionality of mask
     fname_mask = arguments.m
@@ -167,6 +172,7 @@ def main(argv: Sequence[str]):
             path_qc=os.path.abspath(path_qc),
             dataset=qc_dataset,
             subject=qc_subject,
+            contrast=qc_contrast,
         )
 
 

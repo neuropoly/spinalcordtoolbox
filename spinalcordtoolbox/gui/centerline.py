@@ -64,9 +64,9 @@ class CenterlineController(base.BaseController):
 
     def select_point(self, x, y, z):
         if not self.valid_point(x, y, z):
-            raise ValueError('Invalid point selected {}'.format((x, y, z)))
+            raise ValueError(f'Invalid point selected {(x, y, z)}')
 
-        logger.debug('Point Selected {}'.format((x, y, z)))
+        logger.debug(f'Point Selected {(x, y, z)}')
 
         existing_points = [i for i, j in enumerate(self.points) if j[0] == x]
         if existing_points:
@@ -111,10 +111,10 @@ class CenterlineController(base.BaseController):
             raise InvalidActionWarning('Can only select a slice in CUSTOM mode')
 
         if not self.valid_point(x, y, z):
-            raise ValueError('Invalid slice selected {}'.format((x, y, z)))
+            raise ValueError(f'Invalid slice selected {(x, y, z)}')
 
         _, y, z = self.position
-        logger.debug('Slice Selected {}'.format((x, y, z)))
+        logger.debug(f'Slice Selected {(x, y, z)}')
         self.position = (x, y, z)
 
     @property
@@ -124,7 +124,7 @@ class CenterlineController(base.BaseController):
     @mode.setter
     def mode(self, value):
         if value not in self.MODES:
-            raise ValueError('Invalid mode %', value)
+            raise ValueError(f'Invalid mode {value}')
 
         if value != self._mode:
             self._mode = value
@@ -159,19 +159,19 @@ class Centerline(base.BaseDialog):
         else:
             cmd_key = 'Ctrl'
 
-        custom_mode = QtWidgets.QRadioButton('Mode Custom [%s+T]' % cmd_key)
+        custom_mode = QtWidgets.QRadioButton(f'Mode Custom [{cmd_key}+T]')
         custom_mode.mode = 'CUSTOM'
         custom_mode.setToolTip('Manually select the axis slice on sagittal plane')
         custom_mode.toggled.connect(self.on_toggle_mode)
-        custom_mode.sagittal_title = 'Select an axial slice.\n{}'.format(self.params.subtitle)
+        custom_mode.sagittal_title = f'Select an axial slice.\n{self.params.subtitle}'
         custom_mode.axial_title = 'Click in the center of the spinal cord'
         layout.addWidget(custom_mode)
 
-        auto_mode = QtWidgets.QRadioButton('Mode Auto [%s+T]' % cmd_key)
+        auto_mode = QtWidgets.QRadioButton(f'Mode Auto [{cmd_key}+T]')
         auto_mode.mode = 'AUTO'
         auto_mode.setToolTip('Automatically move down the axis slice on the sagittal plane')
         auto_mode.toggled.connect(self.on_toggle_mode)
-        auto_mode.sagittal_title = 'The axial slice is automatically selected\n{}'.format(self.params.subtitle)
+        auto_mode.sagittal_title = f'The axial slice is automatically selected\n{self.params.subtitle}'
         auto_mode.axial_title = 'Click in the center of the spinal cord'
         layout.addWidget(auto_mode)
 
@@ -192,11 +192,11 @@ class Centerline(base.BaseDialog):
         else:
             cmd_key = 'Ctrl'
 
-        skip = QtWidgets.QPushButton('Skip [%s+F]' % cmd_key)
+        skip = QtWidgets.QPushButton(f'Skip [{cmd_key}+F]')
         ctrl_layout.insertWidget(2, skip)
         skip.clicked.connect(self.on_skip_label)
 
-        clean = QtWidgets.QPushButton('Delete all [%s+D]' % cmd_key)
+        clean = QtWidgets.QPushButton(f'Delete all [{cmd_key}+D]')
         ctrl_layout.insertWidget(2, clean)
         clean.clicked.connect(self.on_delete_all_labels)
         # TODO: try the setShortcut attribute
@@ -243,7 +243,7 @@ class Centerline(base.BaseDialog):
                 widget = self.auto_mode
             widget.click()
         self._controller.mode = widget.mode
-        self.update_status('Now in mode {}'.format(widget.mode))
+        self.update_status(f'Now in mode {widget.mode}')
         self.sagittal_canvas.title(widget.sagittal_title)
         self.sagittal_canvas.refresh()
         self.axial_canvas.title(widget.axial_title)
@@ -251,11 +251,11 @@ class Centerline(base.BaseDialog):
 
     def on_select_slice(self, x, y, z):
         try:
-            logger.debug('Slice clicked {}'.format((x, y, z)))
+            logger.debug(f'Slice clicked {(x, y, z)}')
             self._controller.select_slice(x, y, z)
             self.axial_canvas.refresh()
             self.sagittal_canvas.refresh()
-            self.update_status('Sagittal position at {:8.2f}'.format(self._controller.position[0]))
+            self.update_status(f'Sagittal position at {self._controller.position[0]:8.2f}')
         except InvalidActionWarning as warn:
             self.update_warning(str(warn))
 
@@ -271,11 +271,11 @@ class Centerline(base.BaseDialog):
 
     def on_select_point(self, x, y, z):
         try:
-            logger.debug('Point clicked {}'.format((x, y, z)))
+            logger.debug(f'Point clicked {(x, y, z)}')
             self._controller.select_point(x, y, z)
             self.axial_canvas.refresh()
             self.sagittal_canvas.refresh()
-            self.update_status('{} point(s) selected'.format(len(self._controller.points)))
+            self.update_status(f'{len(self._controller.points)} point(s) selected')
         except InvalidActionWarning as warn:
             self.update_warning(str(warn))
 
@@ -295,9 +295,9 @@ def launch_centerline_dialog(im_input_orig, im_output, params):
     """
     im_input = im_input_orig.copy()  # need to copy otherwise the field absolutepath becomes None when exiting
     params.input_file_name = im_input.absolutepath
-    params.subtitle += u"[KEYBOARD] Up/Down arrows: Navigate the superior-inferior direction" \
-                       "\n[MOUSE] Right click: Change brightness (left/right) and contrast (up/down)." \
-                       "\n[MOUSE] Scrolling middle button: Zoom in/out."
+    params.subtitle += ("[KEYBOARD] Up/Down arrows: Navigate the superior-inferior direction"
+                        "\n[MOUSE] Right click: Change brightness (left/right) and contrast (up/down)."
+                        "\n[MOUSE] Scrolling middle button: Zoom in/out.")
     controller = CenterlineController(im_input, params, im_output)
     controller.reformat_image()
 

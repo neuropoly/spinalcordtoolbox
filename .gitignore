@@ -46,6 +46,7 @@ testing/*.json
 test.sh
 sct_course-london19/
 sct_example_data/
+sct_course_data/
 
 # Profiling output
 **/*.prof
@@ -57,6 +58,9 @@ sct_example_data/
 documentation/build
 
 # Apptainer generated files
-/contrib/apptainer/*.sif
-/contrib/apptainer/*.tar.gz
-/contrib/apptainer/sct_apptainer_*/
+*.sif
+*.img
+*.tar.gz
+
+# Installation logs
+install_sct_log.txt

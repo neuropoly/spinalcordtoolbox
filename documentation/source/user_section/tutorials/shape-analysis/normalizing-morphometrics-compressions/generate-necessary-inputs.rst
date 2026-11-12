@@ -47,8 +47,8 @@ These input files can be generated using the commands below. However, if you wou
    - ``t2_compressed_seg_labeled.nii.gz`` : Spinal cord vertebral labels.
 
 
-3. Label spinal cord compression sites
---------------------------------------
+3a. Label spinal cord compression sites (interactive viewer)
+------------------------------------------------------------
 
 1. Open the image in FSLeyes (or your favorite viewer).
 
@@ -82,3 +82,13 @@ These input files can be generated using the commands below. However, if you wou
 9. Save with the filename ``t2_compressed_labels-compression.nii.gz`` and quit.
 
 If you need to label multiple patients, you can use the ``manual_correction.py`` script from the `manual-correction repository <https://github.com/spinalcordtoolbox/manual-correction>`__; see the example `here <https://github.com/spinalcordtoolbox/manual-correction/wiki#manual-labeling-of-spinal-cord-compression>`__.
+
+
+3b. Label spinal cord compression sites (direct coordinates)
+------------------------------------------------------------
+
+Alternatively, if you know the precise coordinates of the compression sites already, you can easily reproduce the label file using the ``-create`` argument of :ref:`sct_label_utils`:
+
+.. code:: sh
+
+   sct_label_utils -i t2_compressed.nii.gz -create 30,152,99,1.0:30,156,118,1.0:30,157,140,1.0:31,160,159,1.0 -o t2_compressed_labels-compression.nii.gz

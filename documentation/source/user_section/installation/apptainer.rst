@@ -20,9 +20,45 @@ Using Apptainer introduces a few caveats to using SCT, however:
 Installation
 ************
 
-This method will install SCT within an Apptainer container, ready for portable use.
+This method will install SCT within an Apptainer container, ready for portable use. First, `install Apptainer <https://apptainer.org/docs/admin/main/installation.html#install-unprivileged-from-pre-built-binaries>`__ if you have not done so already (or activate the module which contains it, if on an shared resource system).
 
-#. Install Apptainer if you have not done so already (or activate the module which contains it, if on an shared resource system).
+From an official release
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 7.4
+
+#. Select the version of SCT you want to install, either from the `release page <https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases>`__ (latest version is |version|) or from the `DockerHub repository <https://hub.docker.com/r/neuropoly/sct/tags>`__.
+
+#. Open a new Terminal window and run the following commands, replacing ``{sct_version}`` with the version you want to install (e.g. the latest release, |version|):
+
+    .. code:: sh
+
+        apptainer build sct.sif docker://neuropoly/sct:{sct_version}
+
+From a local SCT installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. versionadded:: 7.4
+
+Using the `Dockerfile` available in the SCT repository, you can build the container with your local modifications. Simply run the command below, replacing ``{local_sct_repository}`` with the path to your local copy of the SCT repository (e.g. ``/home/user/spinalcordtoolbox``):
+
+.. code:: sh
+
+    apptainer build sct.sif dockerfile://{local_sct_repository}
+
+Preinstalling DeepSeg tasks
+"""""""""""""""""""""""""""
+
+.. versionadded:: 7.4
+
+You can inject DeepSeg tasks at build time by providing a comma-separated list of tasks as a build argument (``--build-arg``). For example, to install the ``spinalcord`` and ``tumor_t2`` tasks:
+
+.. code:: sh
+
+    apptainer build --build-arg DEEPSEG_TASKS=spinalcord,tumor_t2 sct.sif dockerfile://{local_sct_repository}
+
+SCT versions before 7.4
+^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Download the ``sct_apptainer_{sct_version}.tar.gz`` file for your desired SCT release from GitHub (the current release is available `here <https://github.com/spinalcordtoolbox/spinalcordtoolbox/releases/latest/>`__).
 
@@ -59,6 +95,36 @@ If installation ran to completion without error, a ``sct.sif`` file should now b
 
 Installing DeepSeg Tasks Post-Install
 *************************************
+
+.. versionadded:: 7.4
+
+Apptainer containers are static by default. In order to install new ``sct_deepseg`` tasks, you'll need to make the location where models are downloaded ``writable``.
+
+#. Use ``apptainer`` to create a writable overlay to store the models. This only needs to be done once, and the resulting ``sct_deepseg_models.img`` file can be reused for future installations.
+
+    .. code:: sh
+
+        MODEL_DIR=/opt/sct/data/deepseg_models
+        apptainer overlay create --size 20480 --sparse --create-dir $MODEL_DIR sct_deepseg_models.img
+
+    This will create a 20GB overlay file named ``sct_deepseg_models.img``. You can adjust the size as needed, but 20GB should be sufficient for most users.
+
+#. Use the overlay when launching a ``command`` or a ``shell`` in the container.
+
+    .. code:: sh
+
+        apptainer exec --overlay sct_deepseg_models.img sct.sif {command}
+
+    or
+
+    .. code:: sh
+
+        apptainer shell --overlay sct_deepseg_models.img sct.sif
+
+Model download should complete successfully and persist in the overlay image. You can thus reuse it with future ``apptainer`` commands to avoid having to redownload models each time !
+
+SCT versions before 7.4
+^^^^^^^^^^^^^^^^^^^^^^^
 
 If you need to install a task after the initial ``sct.sif`` file was created, you can use the following method to bypass the "static" nature of Apptainer containers. Note, however, that each time you do this, the ``.sif`` file is rebuilt, which can take quite a while. To avoid this, try to determine which ``sct_deepseg`` models you'll need as early as possible and install them all at once!
 

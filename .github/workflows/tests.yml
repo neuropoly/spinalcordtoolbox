@@ -3,8 +3,7 @@ name: Tests
 on:
   workflow_dispatch:
   pull_request:
-    branches:
-      - '*'
+    branches: '*'
   schedule:
     # https://docs.github.com/en/free-pro-team@latest/actions/reference/workflow-syntax-for-github-actions#onschedule
     # > Scheduled workflows run on the latest commit on the default or base branch
@@ -75,7 +74,7 @@ jobs:
     # in the meantime, copy-paste this:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
-    container: debian:sid
+    container: debian:unstable
     steps:
       - name: Dependencies
         run: |  # NB: libgl1-mesa-dev is needed for PyQT testing (https://stackoverflow.com/q/33085297/7584115)
@@ -114,24 +113,19 @@ jobs:
         run: |
           ./.ci.sh -t
 
-  debian-10:
-    name: Debian 10
+  debian-stable:
+    name: Debian Stable
     # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
     #if: ${{ env.NIGHTLY }}
     # in the meantime, copy-paste this:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
-    container: debian:10
+    container: debian:stable
     steps:
       - name: Dependencies
         # NB: libgl1-mesa-dev is needed for PyQT testing (https://stackoverflow.com/q/33085297/7584115)
-        # NB: We echo "archive.debian.org" to address https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4105
-        run: |  
-          echo "deb http://archive.debian.org/debian/ buster main non-free contrib" > /etc/apt/sources.list
-          echo "deb-src http://archive.debian.org/debian/ buster main non-free contrib" >> /etc/apt/sources.list
-          echo "deb http://archive.debian.org/debian-security/ buster/updates main non-free contrib" >> /etc/apt/sources.list
-          echo "deb-src http://archive.debian.org/debian-security/ buster/updates main non-free contrib" >> /etc/apt/sources.list
-          apt update && apt install -y libglib2.0-0 libgl1-mesa-dev procps gcc git curl libgl1-mesa-dev
+        run: |
+          apt update && apt install -y libglib2.0-0 libgl1-mesa-dev procps gcc git curl
       - uses: actions/checkout@v6
       - name: Install SCT
         run: |
@@ -143,19 +137,19 @@ jobs:
         run: |
           ./.ci.sh -t
 
-  debian-11:
-    name: Debian 11
+  debian-oldstable:
+    name: Debian OldStable
     # TODO: when actions supports using ${{env}} in job.*.if and not just job.*.steps.*.if, use this:
     #if: ${{ env.NIGHTLY }}
     # in the meantime, copy-paste this:
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-22.04
-    container: debian:11
+    container: debian:oldstable
     steps:
       - name: Dependencies
         # NB: libgl1-mesa-dev is needed for PyQT testing (https://stackoverflow.com/q/33085297/7584115)
         # NB: We echo "archive.debian.org" to address https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/4105
-        run: |  
+        run: |
           apt update && apt install -y libglib2.0-0 libgl1-mesa-dev procps gcc git curl
       - uses: actions/checkout@v6
       - name: Install SCT
@@ -512,59 +506,3 @@ jobs:
       run: sct_check_dependencies
     - name: Run pytest test suite
       run: sct_testing
-
-  apptainer:
-    name: Apptainer (Ubuntu Latest)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Maximize build space
-        run: |
-          echo "-- Dotnet"
-          sudo rm -rf /usr/share/dotnet
-          echo "-- Android"
-          sudo rm -rf /usr/local/lib/android
-          echo "-- Haskell"
-          sudo rm -rf /opt/ghc
-          echo "-- CodeQL"
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          df -h
-      - name: Install Apptainer + dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y software-properties-common
-          sudo add-apt-repository -y ppa:apptainer/ppa
-          sudo apt update
-          sudo apt install -y apptainer
-      - uses: actions/checkout@v6
-      - name: Get safe Git ref name
-        run: |
-          SAFE_REF=$(printf '%s' "${{ github.head_ref || github.ref_name }}" | sed 's/[^A-Za-z0-9._-]/_/g')
-          echo "SAFE_REF=$SAFE_REF" >> "$GITHUB_ENV"
-      - name: Bundle scripts into tarball
-        run: |
-          cd ./contrib/apptainer
-          ./bundle_for_release.sh "${{ github.head_ref || github.ref_name }}"
-      - name: Extract bundled tarball
-        run: |
-          mkdir apptainer_build
-          tar -xvf ./contrib/apptainer/sct_apptainer_$SAFE_REF.tar.gz -C ./apptainer_build
-      - name: Run installer scripts (with 'spine' task)
-        run: |
-          cd ./apptainer_build
-          ./install_sct_containered_$SAFE_REF.sh spine
-      - name: Install deepseg task post-install (with 'gm_sc_7t_t2star' task)
-        run: |
-          cd ./apptainer_build
-          ./install_deepseg_task.sh gm_sc_7t_t2star
-      - name: Download sample data
-        run: |
-          curl -sL "https://github.com/spinalcordtoolbox/sct_tutorial_data/archive/refs/tags/SCT-Course-20251208.tar.gz" | tar -z -xf -
-      - name: Run 'sct_deepseg spinalcord' (installed by default)
-        run: |
-          apptainer exec apptainer_build/sct.sif sct_deepseg spinalcord -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2/t2.nii.gz
-      - name: Run 'sct_deepseg spine' (added on install)
-        run: |          
-          apptainer exec apptainer_build/sct.sif sct_deepseg spine -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2/t2.nii.gz
-      - name: Run 'sct_deepseg gm_sc_7t_t2star' (added in post-install)
-        run: |          
-          apptainer exec apptainer_build/sct.sif sct_deepseg gm_sc_7t_t2star -i sct_tutorial_data-SCT-Course-20251208/single_subject/data/t2s/t2s.nii.gz

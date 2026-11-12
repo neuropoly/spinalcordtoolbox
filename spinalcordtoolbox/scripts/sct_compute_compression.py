@@ -212,7 +212,7 @@ def get_compressed_slice(img, df_metrics, mode):
         # This metric is computed from either the spinal cord or spinal canal segmentation (`arguments.i`).
         df_filtered = df_metrics[df_metrics['Slice (I->S)'].isin(slices_compressed)]
         # NOTE: we use 'MEAN(diameter_AP)' for all metrics here as this definition was used in the original publication:
-        #  https://pubmed.ncbi.nlm.nih.gov/10101829/
+        #  https://doi.org/10.1097/00007632-199903150-00023
         min_idx = df_filtered['MEAN(diameter_AP)'].idxmin()
         slice_num = df_filtered.loc[min_idx, 'Slice (I->S)']  # this might not be necessary as the index is already the slice
         return [slice_num]
@@ -415,9 +415,8 @@ def get_slices_upper_lower_level_from_centerline(centerline, distance, extent, z
 
     # If zmin is equal to zmax, the range is not available, use the other level above/below
     if zmin_above == zmax_above and zmin_below == zmax_below:
-        raise ValueError("No slices of level above and below with a distance of "
-                         + str(distance) + " mm and extent of " + str(extent)
-                         + " mm. Please provide another distance and extent.")
+        raise ValueError(f"No slices of level above and below with a distance of {distance} mm "
+                         f"and extent of {extent} mm. Please provide another distance and extent.")
     if zmin_above == zmax_above:
         logger.warning("Level above all compressions is not available. Only level below will be used for normalization "
                        "instead. If you want to use the level above, please change distance and extent. ")
@@ -477,8 +476,7 @@ def get_slices_upper_lower_level_from_PAM50(compression_level_dict_PAM50, df_met
         not_above = True
     if not_above and not_below:
         raise ValueError("No metrics of level above and below all compressions are available with a distance of "
-                         + str(distance) + " mm and extent of " + str(extent)
-                         + " mm. Please provide another distance and extent.")
+                         f"{distance} mm and extent of {extent} mm. Please provide another distance and extent.")
     # Take last available slice if extent is out of range
     if zmin_below not in df_metrics_PAM50_short['Slice (I->S)'].to_list():
         zmin_below = min(df_metrics_PAM50_short['Slice (I->S)'].to_list())
@@ -573,12 +571,12 @@ def main(argv: Sequence[str]):
     sex = arguments.sex
     age = arguments.age
     mode = arguments.mode
-    metric = 'MEAN(' + arguments.metric + ')'  # Adjust for csv file columns name
+    metric = f'MEAN({arguments.metric})'  # Adjust for csv file columns name
     if arguments.o is not None:
         fname_out = arguments.o
     else:
         path, file_name, ext = extract_fname(get_absolute_path(arguments.i))
-        fname_out = os.path.join(path, file_name + '_compression_metrics' + '.csv')
+        fname_out = os.path.join(path, f'{file_name}_compression_metrics.csv')
     # Check if segmentation, compression labels, and vertebral label files have same dimensions
     img_seg = Image(fname_segmentation).change_orientation('RPI')
     img_labels = Image(fname_labels).change_orientation('RPI')
@@ -625,7 +623,7 @@ def main(argv: Sequence[str]):
     # -----------------------------------------------------------
     # Call sct_process_segmentation to get morphometrics perslice in native space
     path, file_name, ext = extract_fname(get_absolute_path(arguments.i))
-    fname_metrics = os.path.join(path, file_name + '_metrics' + '.csv')
+    fname_metrics = os.path.join(path, f'{file_name}_metrics.csv')
     # If vertebral labeling file is provided, use it for the sct_process_segmentation call
     if arguments.vertfile:
         sct_process_segmentation.main(argv=['-i', fname_segmentation, '-vertfile', fname_vertfile, '-perslice', '1', '-o', fname_metrics])
@@ -665,7 +663,7 @@ def main(argv: Sequence[str]):
         else:
             list_HC = None
         # Call sct_process_segmentation to get morphometrics perslice in PAM50 space
-        fname_metrics_PAM50 = os.path.join(path, file_name + '_metrics_PAM50' + '.csv')
+        fname_metrics_PAM50 = os.path.join(path, f'{file_name}_metrics_PAM50.csv')
         sct_process_segmentation.main(argv=['-i', fname_segmentation, '-vertfile', fname_vertfile, '-normalize-PAM50', '1',
                                       '-perslice', '1', '-o', fname_metrics_PAM50])
         # Get PAM50 slice thickness

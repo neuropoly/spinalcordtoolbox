@@ -16,6 +16,8 @@ Following the recommendations from the :ref:`previous page<how-many-labels>`, we
 Primary workflow (disc labels from ``sct_deepseg spine``)
 =========================================================
 
+The chosen labels (C2/C3 and T1/T2) can be extracted using numerical IDs:
+
 .. code:: sh
 
    sct_label_utils -i t2_totalspineseg_discs.nii.gz -keep 3,9 -o t2_labels_vert.nii.gz
@@ -27,6 +29,13 @@ Primary workflow (disc labels from ``sct_deepseg spine``)
 
 :Output files/folders:
    - ``t2_labels_vert.nii.gz`` : Image containing the selected labels for registration.
+
+
+We can then visualize the extracted labels as follows:
+
+.. code:: sh
+
+   sct_qc -i t2.nii.gz -s t2_labels_vert.nii.gz -p sct_label_utils -qc ~/qc_singleSubj
 
 
 Legacy workflow (labels from ``sct_label_vertebrae``)

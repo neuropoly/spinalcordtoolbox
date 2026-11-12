@@ -123,7 +123,7 @@ def main(argv: Sequence[str]):
         printv(f"\nRunning sct_process_segmentation on {step_name} segmentation...", verbose, 'normal')
         process_seg_argv_full = ['-i', inputs[step_name], '-o', output[step_name], '-v', '0'] + process_seg_argv
         if verbose >= 2:
-            printv("sct_process_segmentation " + " ".join(process_seg_argv_full), verbose, 'code')
+            printv(f'sct_process_segmentation {" ".join(process_seg_argv_full)}', verbose, 'code')
         sct_process_segmentation.main(process_seg_argv_full)
 
     # Compute aSCOR

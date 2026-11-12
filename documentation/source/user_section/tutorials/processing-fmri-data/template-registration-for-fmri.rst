@@ -10,9 +10,10 @@ Since we are starting the fMRI registration with the vertebral-matching transfor
 .. code::
 
    sct_register_multimodal -i "${SCT_DIR}/data/PAM50/template/PAM50_t2s.nii.gz" \
+                           -iseg "${SCT_DIR}/data/PAM50/template/PAM50_cord.nii.gz" \
                            -d fmri_moco_mean.nii.gz \
-                           -dseg t2_seg_reg.nii.gz \
-                           -param step=1,type=im,algo=syn,metric=CC,iter=5,slicewise=0 \
+                           -dseg fmri_moco_mean_seg.nii.gz \
+                           -param step=1,type=seg,algo=centermass:step=2,type=seg,algo=bsplinesyn,slicewise=1,iter=3:step=3,type=im,algo=syn,metric=CC,iter=3,slicewise=1 \
                            -initwarp ../t2/warp_template2anat.nii.gz \
                            -initwarpinv ../t2/warp_anat2template.nii.gz \
                            -owarp warp_template2fmri.nii.gz \

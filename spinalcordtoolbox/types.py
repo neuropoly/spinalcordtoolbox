@@ -293,8 +293,8 @@ class Centerline:
             c = self.derivatives[index][2]
             d = - (a * self.points[index][0] + b * self.points[index][1] + c * self.points[index][2])
         else:
-            raise IndexError('ERROR in types.Centerline.get_plan_parameters: index (' + str(index) + ') should be '
-                             'within [' + str(0) + ', ' + str(self.number_of_points) + '[.')
+            raise IndexError(f'ERROR in types.Centerline.get_plan_parameters: index ({index}) should be '
+                             f'within [0, {self.number_of_points}[.')
 
         return [a, b, c, d]
 
@@ -324,8 +324,8 @@ class Centerline:
 
             inverse_matrix = inv(matrix_base)
         else:
-            raise IndexError('ERROR in types.Centerline.compute_coordinate_system: index (' + str(index) + ') '
-                             'should be within [' + str(0) + ', ' + str(self.number_of_points) + '[.')
+            raise IndexError(f'ERROR in types.Centerline.compute_coordinate_system: index ({index}) '
+                             f'should be within [0, {self.number_of_points}[.')
 
         return origin, x_prime_axis, y_prime_axis, z_prime_axis, matrix_base, inverse_matrix
 

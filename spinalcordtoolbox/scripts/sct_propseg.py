@@ -171,9 +171,9 @@ def get_parser():
             "\n"
             "References:\n"
             "  - [De Leener B, Kadoury S, Cohen-Adad J. Robust, accurate and fast automatic segmentation of the spinal "
-            "cord. Neuroimage 98, 2014. pp 528-536. DOI: 10.1016/j.neuroimage.2014.04.051](https://pubmed.ncbi.nlm.nih.gov/24780696/)\n"
+            "cord. Neuroimage 98, 2014. pp 528-536. DOI: 10.1016/j.neuroimage.2014.04.051](https://doi.org/10.1016/j.neuroimage.2014.04.051)\n"
             "  - [De Leener B, Cohen-Adad J, Kadoury S. Automatic segmentation of the spinal cord and spinal canal "
-            "coupled with vertebral labeling. IEEE Trans Med Imaging. 2015 Aug;34(8):1705-18.](https://pubmed.ncbi.nlm.nih.gov/26011879/)"
+            "coupled with vertebral labeling. IEEE Trans Med Imaging. 2015 Aug;34(8):1705-18.](https://doi.org/10.1109/tmi.2015.2437192)"
         )
     )
 
@@ -361,6 +361,11 @@ def get_parser():
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
     optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
+    optional.add_argument(
         '-correct-seg',
         metavar=Metavar.int,
         type=int,
@@ -428,47 +433,47 @@ def propseg(img_input, options_dict):
         folder_output = str(pathlib.Path(fname_out).parent)
         fname_out = pathlib.Path(fname_out).name
     if not os.path.isdir(folder_output) and os.path.exists(folder_output):
-        logger.error("output directory %s is not a valid directory" % folder_output)
+        logger.error("output directory %s is not a valid directory", folder_output)
     if not os.path.exists(folder_output):
         os.makedirs(folder_output)
     # We output to a temporary directory first, then copy the files to the real output directory later
     # This addresses https://github.com/spinalcordtoolbox/spinalcordtoolbox/issues/3716.
     folder_output_tmp = tmp_create(basename="propseg")
-    cmd += ['-o', folder_output_tmp]
+    cmd.extend(['-o', folder_output_tmp])
 
     if arguments.down is not None:
-        cmd += ["-down", str(arguments.down)]
+        cmd.extend(["-down", str(arguments.down)])
     if arguments.up is not None:
-        cmd += ["-up", str(arguments.up)]
+        cmd.extend(["-up", str(arguments.up)])
 
     remove_temp_files = arguments.r
 
     verbose = int(arguments.v)
     # Update for propseg binary
     if verbose > 0:
-        cmd += ["-verbose"]
+        cmd.append("-verbose")
 
     # Output options
     if arguments.mesh:
-        cmd += ["-mesh"]
+        cmd.append("-mesh")
     if arguments.centerline_binary:
-        cmd += ["-centerline-binary"]
+        cmd.append("-centerline-binary")
     if arguments.CSF:
-        cmd += ["-CSF"]
+        cmd.append("-CSF")
     if arguments.centerline_coord:
-        cmd += ["-centerline-coord"]
+        cmd.append("-centerline-coord")
     if arguments.cross:
-        cmd += ["-cross"]
+        cmd.append("-cross")
     if arguments.init_tube:
-        cmd += ["-init-tube"]
+        cmd.append("-init-tube")
     if arguments.low_resolution_mesh:
-        cmd += ["-low-resolution-mesh"]
+        cmd.append("-low-resolution-mesh")
     # TODO: Not present. Why is this here? Was this renamed?
     # if arguments.detect_nii is not None:
-    #     cmd += ["-detect-nii"]
+    #     cmd.append("-detect-nii")
     # TODO: Not present. Why is this here? Was this renamed?
     # if arguments.detect_png is not None:
-    #     cmd += ["-detect-png"]
+    #     cmd.append("-detect-png")
 
     # Helping options
     use_viewer = None
@@ -478,7 +483,7 @@ def propseg(img_input, options_dict):
     if arguments.init is not None:
         init_option = float(arguments.init)
         if init_option < 0:
-            printv('Command-line usage error: ' + str(init_option) + " is not a valid value for '-init'", 1, 'error')
+            printv(f"Command-line usage error: {init_option} is not a valid value for '-init'", 1, 'error')
             sys.exit(1)
     if arguments.init_centerline is not None:
         if str(arguments.init_centerline) == "viewer":
@@ -490,7 +495,7 @@ def propseg(img_input, options_dict):
                 fname_labels_viewer = func_rescale_header(str(arguments.init_centerline), rescale_header, verbose=verbose)
             else:
                 fname_labels_viewer = str(arguments.init_centerline)
-            cmd += ["-init-centerline", fname_labels_viewer]
+            cmd.extend(["-init-centerline", fname_labels_viewer])
             use_optic = False
     if arguments.init_mask is not None:
         if str(arguments.init_mask) == "viewer":
@@ -500,35 +505,35 @@ def propseg(img_input, options_dict):
                 fname_labels_viewer = func_rescale_header(str(arguments.init_mask), rescale_header)
             else:
                 fname_labels_viewer = str(arguments.init_mask)
-            cmd += ["-init-mask", fname_labels_viewer]
+            cmd.extend(["-init-mask", fname_labels_viewer])
             use_optic = False
     if arguments.mask_correction is not None:
-        cmd += ["-mask-correction", str(arguments.mask_correction)]
+        cmd.extend(["-mask-correction", str(arguments.mask_correction)])
     if arguments.radius is not None:
-        cmd += ["-radius", str(arguments.radius)]
+        cmd.extend(["-radius", str(arguments.radius)])
     # TODO: Not present. Why is this here? Was this renamed?
     # if arguments.detect_n is not None:
-    #     cmd += ["-detect-n", str(arguments.detect_n)]
+    #     cmd.extend(["-detect-n", str(arguments.detect_n)])
     # TODO: Not present. Why is this here? Was this renamed?
     # if arguments.detect_gap is not None:
-    #     cmd += ["-detect-gap", str(arguments.detect_gap)]
+    #     cmd.extend(["-detect-gap", str(arguments.detect_gap)])
     # TODO: Not present. Why is this here? Was this renamed?
     # if arguments.init_validation is not None:
-    #     cmd += ["-init-validation"]
+    #     cmd.extend(["-init-validation"])
     if arguments.nbiter is not None:
-        cmd += ["-nbiter", str(arguments.nbiter)]
+        cmd.extend(["-nbiter", str(arguments.nbiter)])
     if arguments.max_area is not None:
-        cmd += ["-max-area", str(arguments.max_area)]
+        cmd.extend(["-max-area", str(arguments.max_area)])
     if arguments.max_deformation is not None:
-        cmd += ["-max-deformation", str(arguments.max_deformation)]
+        cmd.extend(["-max-deformation", str(arguments.max_deformation)])
     if arguments.min_contrast is not None:
-        cmd += ["-min-contrast", str(arguments.min_contrast)]
+        cmd.extend(["-min-contrast", str(arguments.min_contrast)])
     if arguments.d is not None:
-        cmd += ["-d", str(arguments.d)]
+        cmd.extend(["-d", str(arguments.d)])
     if arguments.distance_search is not None:
-        cmd += ["-dsearch", str(arguments.distance_search)]
+        cmd.extend(["-dsearch", str(arguments.distance_search)])
     if arguments.alpha is not None:
-        cmd += ["-alpha", str(arguments.alpha)]
+        cmd.extend(["-alpha", str(arguments.alpha)])
 
     # check if input image is in 3D. Otherwise itk image reader will cut the 4D image in 3D volumes and only take the first one.
     image_input = Image(fname_data)
@@ -546,7 +551,7 @@ def propseg(img_input, options_dict):
         fname_data_propseg = fname_data
 
     # add to command
-    cmd += ['-i', fname_data_propseg]
+    cmd.extend(['-i', fname_data_propseg])
 
     # if centerline or mask is asked using viewer
     if use_viewer:
@@ -578,9 +583,9 @@ def propseg(img_input, options_dict):
 
         # add mask filename to parameters string
         if use_viewer == "centerline":
-            cmd += ["-init-centerline", fname_labels_viewer]
+            cmd.extend(["-init-centerline", fname_labels_viewer])
         elif use_viewer == "mask":
-            cmd += ["-init-mask", fname_labels_viewer]
+            cmd.extend(["-init-mask", fname_labels_viewer])
 
     # If using OptiC
     elif use_optic:
@@ -588,15 +593,15 @@ def propseg(img_input, options_dict):
         path_tmp = tmp_create(basename="propseg-centerline-optic")
         fname_centerline_optic = os.path.join(path_tmp, 'centerline_optic.nii.gz')
         image_centerline.save(fname_centerline_optic)
-        cmd += ["-init-centerline", fname_centerline_optic]
+        cmd.extend(["-init-centerline", fname_centerline_optic])
 
     if init_option is not None:
         if init_option > 1:
             init_option /= (nz - 1)
-        cmd += ['-init', str(init_option)]
+        cmd.extend(['-init', str(init_option)])
 
     # enabling centerline extraction by default (needed by check_and_correct_segmentation() )
-    cmd += ['-centerline-binary']
+    cmd.append('-centerline-binary')
 
     # run propseg
     status, output = run_proc(cmd, verbose, raise_exception=False, is_sct_binary=True)
@@ -664,9 +669,11 @@ def main(argv: Sequence[str]):
     path_qc = arguments.qc
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
     if path_qc is not None:
         generate_qc(fname_in1=fname_input_data, fname_seg=fname_seg, args=argv,
-                    path_qc=os.path.abspath(path_qc), dataset=qc_dataset, subject=qc_subject, process='sct_propseg')
+                    path_qc=os.path.abspath(path_qc), dataset=qc_dataset, subject=qc_subject,
+                    contrast=qc_contrast, process='sct_propseg')
     display_viewer_syntax([fname_input_data, fname_seg], im_types=['anat', 'seg'], opacities=['', '1'], verbose=verbose)
 
 

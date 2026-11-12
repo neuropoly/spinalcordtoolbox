@@ -35,7 +35,7 @@ def test_sct_get_centerline_output_file_exists_with_o_arg(tmp_path, tmp_path_qc,
     """This test checks the '-o' argument with and without an extension to
     ensure that the correct output file is created either way."""
     sct_get_centerline.main(argv=['-i', sct_test_path('t2s', 't2s.nii.gz'), '-c', 't2s', '-qc', tmp_path_qc,
-                                  '-o', os.path.join(tmp_path, 't2s_centerline'+ext)])
+                                  '-o', os.path.join(tmp_path, f't2s_centerline{ext}')])
     for file in [sct_test_path('t2s', 't2s_centerline.nii.gz'), sct_test_path('t2s', 't2s_centerline.csv')]:
         assert os.path.exists(file)
 

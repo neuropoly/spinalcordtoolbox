@@ -6,7 +6,7 @@
 # Reference paper:
 #     Perone, C. S., Calabrese, E., & Cohen-Adad, J. (2017).
 #     Spinal cord gray matter segmentation using deep dilated convolutions.
-#     URL: https://arxiv.org/abs/1710.01269
+#     URL: https://doi.org/10.48550/arXiv.1710.01269
 #
 # Copyright (c) 2018 Polytechnique Montreal <www.neuro.polymtl.ca>
 # License: see the file LICENSE
@@ -78,6 +78,10 @@ def get_parser():
         '-qc-subject',
         help='If provided, this string will be mentioned in the QC report as the subject the process was run on',
         metavar=Metavar.str)
+    misc.add_argument(
+        '-qc-contrast',
+        help='If provided, this string will be mentioned in the QC report as the contrast the process was run on',
+        metavar=Metavar.str)
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -115,9 +119,10 @@ def main(argv: Sequence[str]):
     path_qc = arguments.qc
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
     if path_qc is not None:
         generate_qc(fname_in1=input_filename, fname_seg=out_fname, args=argv, path_qc=os.path.abspath(path_qc),
-                    dataset=qc_dataset, subject=qc_subject, process='sct_deepseg_gm')
+                    dataset=qc_dataset, subject=qc_subject, contrast=qc_contrast, process='sct_deepseg_gm')
 
     display_viewer_syntax(
         [input_filename, format(out_fname)],

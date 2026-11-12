@@ -64,8 +64,7 @@ class ImageCropper(object):
                 zmin=max(bbox.zmin-dilate[2], 0), zmax=min(bbox.zmax+dilate[2], img_in.dim[2]-1),
             )
 
-        logger.info("Bounding box: x=[{}, {}], y=[{}, {}], z=[{}, {}]"
-                    .format(bbox.xmin, bbox.xmax+1, bbox.ymin, bbox.ymax+1, bbox.zmin, bbox.zmax+1))
+        logger.info(f"Bounding box: x=[{bbox.xmin}, {bbox.xmax+1}], y=[{bbox.ymin}, {bbox.ymax+1}], z=[{bbox.zmin}, {bbox.zmax+1}]")
 
         # Crop the image
         if background is None:
@@ -85,7 +84,7 @@ class ImageCropper(object):
 
         # Set voxels outside the bbox to the value 'background'
         else:
-            logger.info("Setting voxels outside the bounding box to: {}".format(background))
+            logger.info(f"Setting voxels outside the bounding box to: {background}")
             img_out = img_in.copy()
             img_out.data[:] = background
             img_out.data[bbox.xmin:bbox.xmax+1, bbox.ymin:bbox.ymax+1, bbox.zmin:bbox.zmax+1] = \
@@ -125,8 +124,7 @@ class ImageCropper(object):
         from spinalcordtoolbox.resampling import resample_nib
         #  Check that img_ref has the same length as img_in
         if not len(img_ref.data.shape) == len(self.img_in.data.shape):
-            logger.error("Inconsistent dimensions: n_dim(img_ref)={}; n_dim(img_in)={}"
-                         .format(len(img_ref.data.shape), len(self.img_in.data.shape)))
+            logger.error(f"Inconsistent dimensions: n_dim(img_ref)={len(img_ref.data.shape)}; n_dim(img_in)={len(self.img_in.data.shape)}")
             raise ValueError('Inconsistent dimensions')
         # Fill reference data with ones
         img_ref.data[:] = 1

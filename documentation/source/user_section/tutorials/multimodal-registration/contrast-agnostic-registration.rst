@@ -4,7 +4,7 @@ Contrast-agnostic registration with deep learning
 #################################################
 
 This tutorial will demonstrate how to coregister two images together that have different contrasts using deep
-learning. The algorithm is based on `SynthMorph <https://arxiv.org/pdf/2004.10282.pdf>`__. More details of its
+learning. The algorithm is based on `SynthMorph <https://doi.org/10.48550/arXiv.2004.10282>`__. More details of its
 implementation in SCT can be found `here <https://github.com/ivadomed/multimodal-registration>`__.
 
 .. toctree::

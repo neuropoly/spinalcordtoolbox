@@ -38,9 +38,9 @@ CSV key                  Meaning
                          posterior-right).
 =======================  ============================================================
 
-These are of particular interest for studying cord compression. See `Martin et al. BMJ Open 2018 <https://bmjopen.bmj.com/content/8/4/e019809>`_ and `Horáková et al. Quant Imaging Med Surg 2022 <https://pubmed.ncbi.nlm.nih.gov/35371944/>`_ for example applications.
+These are of particular interest for studying cord compression. See `Martin et al. BMJ Open 2018 <https://doi.org/10.1136/bmjopen-2017-019809>`_ and `Horáková et al. Quant Imaging Med Surg 2022 <https://doi.org/10.21037/qims-21-782>`_ for example applications.
 
-For an interactive database of normative values, see `Valošek, Bédard et al. NeuroLibre 2023 <https://neurolibre.org/papers/10.55458/neurolibre.00017>`_.
+For an interactive database of normative values, see `Valošek, Bédard et al. NeuroLibre 2023 <https://doi.org/10.55458/neurolibre.00017>`_.
 
 To demonstrate, below are the shape metrics provided in the CSV file produced by :ref:`csa-perlevel`.
 

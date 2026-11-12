@@ -90,6 +90,10 @@ def get_parser():
         '-qc-subject',
         metavar=Metavar.str,
         help='If provided, this string will be mentioned in the QC report as the subject the process was run on.')
+    optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help='If provided, this string will be mentioned in the QC report as the contrast the process was run on.')
 
     # Arguments which implement shared functionality
     parser.add_common_args()
@@ -114,11 +118,11 @@ class DetectPMJ:
 
         self.orientation_im = Image(self.fname_im).orientation  # to re-orient the data at the end
 
-        self.slice2D_im = extract_fname(self.fname_im)[1] + '_midSag.nii'  # file used to do the detection, with only one slice
-        self.dection_map_pmj = extract_fname(self.fname_im)[1] + '_map_pmj'  # file resulting from the detection
+        self.slice2D_im = f'{extract_fname(self.fname_im)[1]}_midSag.nii'  # file used to do the detection, with only one slice
+        self.dection_map_pmj = f'{extract_fname(self.fname_im)[1]}_map_pmj'  # file resulting from the detection
 
         # path to the pmj detector
-        self.pmj_model = os.path.join(__data_dir__, 'pmj_models', '{}_model'.format(self.contrast))
+        self.pmj_model = os.path.join(__data_dir__, 'pmj_models', f'{self.contrast}_model')
 
         self.threshold = -0.75 if self.contrast == 't1' else 0.8  # detection map threshold, depends on the contrast
 
@@ -168,9 +172,9 @@ class DetectPMJ:
             im_mask.change_orientation(self.orientation_im).save(self.fname_out)
 
             x_pmj, y_pmj, z_pmj = np.where(im_mask.data == 50)
-            printv('\tx_pmj = ' + str(x_pmj[0]), self.verbose, 'info')
-            printv('\ty_pmj = ' + str(y_pmj[0]), self.verbose, 'info')
-            printv('\tz_pmj = ' + str(z_pmj[0]), self.verbose, 'info')
+            printv(f'\tx_pmj = {x_pmj[0]}', self.verbose, 'info')
+            printv(f'\ty_pmj = {y_pmj[0]}', self.verbose, 'info')
+            printv(f'\tz_pmj = {z_pmj[0]}', self.verbose, 'info')
 
     def get_max_position(self):
         """Find the position of the PMJ by thresholding the probabilistic map."""
@@ -197,10 +201,11 @@ class DetectPMJ:
         print(cmd_pmj)
         run_proc(cmd_pmj, verbose=0, is_sct_binary=True)
 
-        img = nib.load(self.dection_map_pmj + '_svm.hdr')  # convert .img and .hdr files to .nii
-        nib.save(img, self.dection_map_pmj + '.nii')  # NB: Use nib.save instead of Image.save for hdr file
+        img = nib.load(f'{self.dection_map_pmj}_svm.hdr')  # convert .img and .hdr files to .nii
+        fname_nii = f'{self.dection_map_pmj}.nii'
+        nib.save(img, fname_nii)  # NB: Use nib.save instead of Image.save for hdr file
 
-        self.dection_map_pmj += '.nii'  # fname of the resulting detection map
+        self.dection_map_pmj = fname_nii  # fname of the resulting detection map
 
     def extract_sagittal_slice(self):
         """Extract the sagittal slice where the detection is done.
@@ -283,7 +288,7 @@ def main(argv: Sequence[str]):
         fname_seg = arguments.s
         if not os.path.isfile(fname_seg):
             fname_seg = None
-            printv('WARNING: -s input file: "' + arguments.s + '" does not exist.\nDetecting PMJ without using segmentation information', 1, 'warning')
+            printv(f'WARNING: -s input file: "{arguments.s}" does not exist.\nDetecting PMJ without using segmentation information', 1, 'warning')
     else:
         fname_seg = None
 
@@ -291,7 +296,7 @@ def main(argv: Sequence[str]):
     if arguments.ofolder is not None:
         path_results = arguments.ofolder
         if not os.path.isdir(path_results) and os.path.exists(path_results):
-            printv("ERROR output directory %s is not a valid directory" % path_results, 1, 'error')
+            printv(f"ERROR output directory {path_results} is not a valid directory", 1, 'error')
         if not os.path.exists(path_results):
             os.makedirs(path_results)
     else:
@@ -299,7 +304,7 @@ def main(argv: Sequence[str]):
     if arguments.o is not None:
         fname_o = arguments.o
     else:
-        fname_o = extract_fname(fname_in)[1] + '_pmj.nii.gz'
+        fname_o = f'{extract_fname(fname_in)[1]}_pmj.nii.gz'
 
     path_qc = arguments.qc
 
@@ -326,7 +331,8 @@ def main(argv: Sequence[str]):
         if path_qc is not None:
             from spinalcordtoolbox.reports.qc import generate_qc
             generate_qc(fname_in, fname_seg=fname_out, args=argv, path_qc=os.path.abspath(path_qc),
-                        dataset=arguments.qc_dataset, subject=arguments.qc_subject, process='sct_detect_pmj')
+                        dataset=arguments.qc_dataset, subject=arguments.qc_subject,
+                        contrast=arguments.qc_contrast, process='sct_detect_pmj')
 
         display_viewer_syntax([fname_in, fname_out], im_types=['anat', 'seg'], verbose=verbose)
 

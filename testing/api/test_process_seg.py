@@ -222,7 +222,7 @@ def dummy_segmentation(size_arr=(256, 256, 256), pixdim=(1, 1, 1), dtype=np.floa
     # Update orientation
     img.change_orientation(orientation)
     if debug:
-        img.save('tmp_dummy_seg_'+datetime.now().strftime("%Y%m%d%H%M%S%f")+'.nii.gz')
+        img.save(f'tmp_dummy_seg_{datetime.now():%Y%m%d%H%M%S%f}.nii.gz')
 
     # Determine expected metrics based on input values
     if shape == 'ellipse':

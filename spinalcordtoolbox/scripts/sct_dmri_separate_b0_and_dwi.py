@@ -110,10 +110,10 @@ def main(argv: Sequence[str]):
 
     # printv(arguments)
     printv('\nInput parameters:', verbose)
-    printv('  input file ............' + fname_data, verbose)
-    printv('  bvecs file ............' + fname_bvecs, verbose)
-    printv('  bvals file ............' + fname_bvals, verbose)
-    printv('  average ...............' + str(average), verbose)
+    printv(f'  input file ............{fname_data}', verbose)
+    printv(f'  bvecs file ............{fname_bvecs}', verbose)
+    printv(f'  bvals file ............{fname_bvals}', verbose)
+    printv(f'  average ...............{average}', verbose)
 
     # Get full path
     fname_data = os.path.abspath(fname_data)
@@ -131,10 +131,10 @@ def main(argv: Sequence[str]):
     printv('\nCopy files into temporary folder...', verbose)
     ext = '.nii'
     dmri_name = 'dmri'
-    b0_name = file_data + '_b0'
-    b0_mean_name = b0_name + '_mean'
-    dwi_name = file_data + '_dwi'
-    dwi_mean_name = dwi_name + '_mean'
+    b0_name = f'{file_data}_b0'
+    b0_mean_name = f'{b0_name}_mean'
+    dwi_name = f'{file_data}_dwi'
+    dwi_mean_name = f'{dwi_name}_mean'
     im_dmri = convert(Image(fname_data))
     im_dmri.save(os.path.join(path_tmp, dmri_name + ext), mutable=True, verbose=verbose)
     copy(fname_bvecs, os.path.join(path_tmp, "bvecs"), verbose=verbose)
@@ -146,7 +146,7 @@ def main(argv: Sequence[str]):
     # Get size of data
     printv('\nGet dimensions data...', verbose)
     nx, ny, nz, nt, px, py, pz, pt = im_dmri.dim
-    printv('.. ' + str(nx) + ' x ' + str(ny) + ' x ' + str(nz) + ' x ' + str(nt), verbose)
+    printv(f'.. {nx} x {ny} x {nz} x {nt}', verbose)
 
     # Identify b=0 and DWI images
     printv(fname_bvals)
@@ -162,7 +162,7 @@ def main(argv: Sequence[str]):
     printv('\nMerge b=0...', verbose)
     fname_in_list_b0 = []
     for it in range(nb_b0):
-        fname_in_list_b0.append(dmri_name + '_T' + str(index_b0[it]).zfill(4) + ext)
+        fname_in_list_b0.append(f'{dmri_name}_T{index_b0[it]:04}{ext}')
     im_in_list_b0 = [Image(fname) for fname in fname_in_list_b0]
     concat_data(im_in_list_b0, 3).save(b0_name + ext)
 
@@ -180,7 +180,7 @@ def main(argv: Sequence[str]):
     # Merge DWI
     fname_in_list_dwi = []
     for it in range(nb_dwi):
-        fname_in_list_dwi.append(dmri_name + '_T' + str(index_dwi[it]).zfill(4) + ext)
+        fname_in_list_dwi.append(f'{dmri_name}_T{index_dwi[it]:04}{ext}')
     im_in_list_dwi = [Image(fname) for fname in fname_in_list_dwi]
     concat_data(im_in_list_dwi, 3).save(dwi_name + ext)
 
@@ -217,7 +217,7 @@ def main(argv: Sequence[str]):
 
     # display elapsed time
     elapsed_time = time.time() - start_time
-    printv('\nFinished! Elapsed time: ' + str(int(np.round(elapsed_time))) + 's', verbose)
+    printv(f'\nFinished! Elapsed time: {int(np.round(elapsed_time))}s', verbose)
 
     return fname_b0, fname_b0_mean, fname_dwi, fname_dwi_mean
 
@@ -284,8 +284,8 @@ def identify_b0(fname_bvecs, fname_bvals, bval_min, verbose):
     # display stuff
     nb_b0 = len(index_b0)
     nb_dwi = len(index_dwi)
-    printv('  Number of b=0: ' + str(nb_b0) + ' ' + str(index_b0), verbose)
-    printv('  Number of DWI: ' + str(nb_dwi) + ' ' + str(index_dwi), verbose)
+    printv(f'  Number of b=0: {nb_b0} {index_b0}', verbose)
+    printv(f'  Number of DWI: {nb_dwi} {index_dwi}', verbose)
 
     # return
     return index_b0, index_dwi, nb_b0, nb_dwi

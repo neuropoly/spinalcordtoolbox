@@ -56,11 +56,11 @@ class WarpTemplate:
         # printv(arguments)
         # printv(arguments)
         printv('\nCheck parameters:')
-        printv('  Working directory ........ ' + os.getcwd())
-        printv('  Destination image ........ ' + self.fname_src)
-        printv('  Warping field ............ ' + self.fname_transfo)
-        printv('  Path template ............ ' + self.path_template)
-        printv('  Output folder ............ ' + self.folder_out + "\n")
+        printv(f'  Working directory ........ {os.getcwd()}')
+        printv(f'  Destination image ........ {self.fname_src}')
+        printv(f'  Warping field ............ {self.fname_transfo}')
+        printv(f'  Path template ............ {self.path_template}')
+        printv(f'  Output folder ............ {self.folder_out}\n')
 
         # create output folder
         if not os.path.exists(self.folder_out):
@@ -102,7 +102,7 @@ def warp_label(path_label, folder_label, file_label, fname_src, fname_transfo, p
             combined_labels_id_groups, clusters_apriori = \
             spinalcordtoolbox.metadata.read_label_file(os.path.join(path_label, folder_label), file_label)
     except Exception as error:
-        printv('\nWARNING: Cannot warp label ' + folder_label + ': ' + str(error), 1, 'warning')
+        printv(f'\nWARNING: Cannot warp label {folder_label}: {error}', 1, 'warning')
         raise
     else:
         # create output folder
@@ -206,12 +206,17 @@ def get_parser():
         help="If provided, this string will be mentioned in the QC report as the subject the process was run on."
     )
     optional.add_argument(
+        '-qc-contrast',
+        metavar=Metavar.str,
+        help="If provided, this string will be mentioned in the QC report as the contrast the process was run on."
+    )
+    optional.add_argument(
         '-histo',
         metavar=Metavar.int,
         type=int,
         choices=[0, 1],
         default=param_default.warp_histo,
-        help="Warp histology atlas from Duval et al. Neuroimage 2019 (https://pubmed.ncbi.nlm.nih.gov/30326296/)."
+        help="Warp histology atlas from Duval et al. Neuroimage 2019 (https://doi.org/10.1016/j.neuroimage.2018.10.033)."
     )
 
     # Arguments which implement shared functionality
@@ -251,6 +256,7 @@ def main(argv: Sequence[str]):
     path_qc = arguments.qc
     qc_dataset = arguments.qc_dataset
     qc_subject = arguments.qc_subject
+    qc_contrast = arguments.qc_contrast
     folder_template = param.folder_template
     folder_atlas = param.folder_atlas
     folder_histo = param.folder_histo
@@ -270,7 +276,7 @@ def main(argv: Sequence[str]):
                 w.folder_out, w.folder_template, spinalcordtoolbox.metadata.get_file_label(path_template, id_label=4))  # label = 'white matter mask (probabilistic)'
             generate_qc(
                 fname_src, fname_seg=fname_wm, args=argv, path_qc=os.path.abspath(path_qc), dataset=qc_dataset,
-                subject=qc_subject, process='sct_warp_template')
+                subject=qc_subject, contrast=qc_contrast, process='sct_warp_template')
         # If label is missing, get_file_label() throws a RuntimeError
         except RuntimeError:
             printv("QC not generated since expected labels are missing from template", type="warning")

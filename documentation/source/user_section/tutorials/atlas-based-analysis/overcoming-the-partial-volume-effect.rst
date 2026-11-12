@@ -23,7 +23,7 @@ This method is only useful if you have an existing binary mask for each region o
 Atlas-based methods
 *******************
 
-Instead of using binary masks, we can use the white and gray matter atlas contained within the PAM50 template. In the atlas, each tract is represented using a nonbinary "soft" mask, with values ranging from 0 to 1 at the edges of each tract label that capture the partial volume information. For more information on how the exact partial volume values were determined for each tract, see `[Lévy et al., Neuroimage 2015] <https://pubmed.ncbi.nlm.nih.gov/26099457/>`_.
+Instead of using binary masks, we can use the white and gray matter atlas contained within the PAM50 template. In the atlas, each tract is represented using a nonbinary "soft" mask, with values ranging from 0 to 1 at the edges of each tract label that capture the partial volume information. For more information on how the exact partial volume values were determined for each tract, see `[Lévy et al., Neuroimage 2015] <https://doi.org/10.1016/j.neuroimage.2015.06.040>`_.
 
 ``-method ml``: Maximum Likelihood
 ----------------------------------
@@ -35,6 +35,6 @@ The partial volume information from the atlas can be combined with Gaussian mixt
 
 Because Maximum Likelihood estimation is sensitive to noise, especially in small tracts, we recommend using the Maximum a Posteriori method instead. This method adds a prior -- specifically, the maximum likelihood estimation computed within either the WM, GM, or CSF compartment of the image, depending on which area the ROI belongs to. (For example, if a metric is extracted for a specific WM tract, the maximum likelihood for the WM as a whole will be used as a prior.)
 
-The ``map`` method is the most robust to noise in small tracts. This was further validated using bootstrap simulations based on a synthetic MRI phantom. For more details, see `[Lévy et al., Neuroimage 2015] <https://pubmed.ncbi.nlm.nih.gov/26099457/>`_ (construction of the phantom, effect of noise, contrast) and `[De Leener et al., Neuroimage 2017; Appendix] <https://pubmed.ncbi.nlm.nih.gov/27720818/>`_ (effect of spatial resolution).
+The ``map`` method is the most robust to noise in small tracts. This was further validated using bootstrap simulations based on a synthetic MRI phantom. For more details, see `[Lévy et al., Neuroimage 2015] <https://doi.org/10.1016/j.neuroimage.2015.06.040>`_ (construction of the phantom, effect of noise, contrast) and `[De Leener et al., Neuroimage 2017; Appendix] <https://doi.org/10.1016/j.neuroimage.2016.10.009>`_ (effect of spatial resolution).
 
 .. note:: The methods ``bin`` and ``wa`` can be used with any binary mask. However, the methods ``ml`` and ``map`` require you to warp the white matter atlas to the coordinate space of your data, as is shown on the next page.

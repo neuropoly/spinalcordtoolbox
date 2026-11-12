@@ -58,7 +58,7 @@ def find_centerline(algo, image_fname, contrast_type, brain_bool, folder_output,
     # TODO: maybe change 'svm' for 'optic', because this is how we call it in sct_get_centerline
     if algo == 'svm':
         # run optic on a heatmap computed by a trained SVM+HoG algorithm
-        # optic_models_fname = os.path.join(path_sct, 'data', 'optic_models', '{}_model'.format(contrast_type))
+        # optic_models_fname = os.path.join(path_sct, 'data', 'optic_models', f'{contrast_type}_model')
         # # TODO: replace with get_centerline(method=optic)
         im_ctl, _, _, _ = get_centerline(im,
                                          ParamCenterline(algo_fitting='optic', contrast=contrast_type),
@@ -72,7 +72,7 @@ def find_centerline(algo, image_fname, contrast_type, brain_bool, folder_output,
                          'dwi': {'size': (80, 80), 'mean': 55.744, 'std': 45.003}}
 
         # load model
-        ctr_model_fname = sct_dir_local_path('data', 'deepseg_sc_models', '{}_ctr.onnx'.format(contrast_type))
+        ctr_model_fname = sct_dir_local_path('data', 'deepseg_sc_models', f'{contrast_type}_ctr.onnx')
         # compute the heatmap
         im_heatmap, z_max = heatmap(im=im,
                                     model=ctr_model_fname,
@@ -415,11 +415,11 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
 
     # Display stuff
     logger.info("Config deepseg_sc:")
-    logger.info("  Centerline algorithm: {}".format(ctr_algo))
-    logger.info("  Brain in image: {}".format(brain_bool))
-    logger.info("  Kernel dimension: {}".format(kernel_size))
-    logger.info("  Contrast: {}".format(contrast_type))
-    logger.info("  Threshold: {}".format(threshold_seg))
+    logger.info(f"  Centerline algorithm: {ctr_algo}")
+    logger.info(f"  Brain in image: {brain_bool}")
+    logger.info(f"  Kernel dimension: {kernel_size}")
+    logger.info(f"  Contrast: {contrast_type}")
+    logger.info(f"  Threshold: {threshold_seg}")
 
     # create temporary folder with intermediate results
     tmp_folder = TempFolder(basename="deepseg-sc", verbose=verbose)
@@ -476,14 +476,14 @@ def deep_segmentation_spinalcord(im_image, contrast_type, ctr_algo='cnn', ctr_fi
         # segment data using 2D convolutions
         logger.info("Segmenting the spinal cord using deep learning on 2D patches...")
         segmentation_model_fname = \
-            sct_dir_local_path('data', 'deepseg_sc_models', '{}_sc.onnx'.format(contrast_type))
+            sct_dir_local_path('data', 'deepseg_sc_models', f'{contrast_type}_sc.onnx')
         seg_crop = segment_2d(model_fname=segmentation_model_fname,
                               im_in=im_norm_in)
     elif kernel_size == '3d':
         # segment data using 3D convolutions
         logger.info("Segmenting the spinal cord using deep learning on 3D patches...")
         segmentation_model_fname = \
-            sct_dir_local_path('data', 'deepseg_sc_models', '{}_sc_3D.onnx'.format(contrast_type))
+            sct_dir_local_path('data', 'deepseg_sc_models', f'{contrast_type}_sc_3D.onnx')
         seg_crop = segment_3d(model_fname=segmentation_model_fname,
                               contrast_type=contrast_type,
                               im_in=im_norm_in)

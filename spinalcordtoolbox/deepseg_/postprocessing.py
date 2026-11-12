@@ -29,7 +29,7 @@ def _fill_z_holes(zz_lst, data, z_spaccing):
         denom_interpolation = (lenght_hole + 1)
 
         if phys_lenght_hole < 10:
-            logger.warning('Filling a hole in the segmentation around z_slice #:' + str(z_ref_start))
+            logger.warning(f'Filling a hole in the segmentation around z_slice #:{z_ref_start}')
 
             for idx_z, z_hole_cur in enumerate(hole_cur_lst):
                 num_interpolation = (lenght_hole - idx_z - 1) * slice_ref_start  # Contribution of the bottom ref slice
@@ -77,7 +77,7 @@ def _remove_blobs(data):
             for obj_id in range(1, num_obj2clean + 1):
                 # if the blob has a volume < 10% of the bigger connected object, then remove it
                 if np.sum(labeled_obj2clean == obj_id) < 0.1 * np.sum(bigger_obj):
-                    logger.warning('Removing small objects above slice #' + str(z_max))
+                    logger.warning(f'Removing small objects above slice #{z_max}')
                     data[np.where(labeled_obj2clean == obj_id)] = 0
 
     return data
@@ -117,11 +117,11 @@ def _remove_isolated_voxels_on_the_edge(im_seg, n_slices=5):
     # ... for the top slice
     if metrics['area'].data[ind_min] < np.median(metrics['area'].data[ind_min:n_slices])/2:
         im_seg.data[:, :, ind_min] = 0
-        logger.warning('Found isolated voxels on slice {}, Removing them'.format(ind_min))
+        logger.warning(f'Found isolated voxels on slice {ind_min}, Removing them')
     # ... for the bottom slice
     if metrics['area'].data[ind_max] < np.median(metrics['area'].data[ind_max-n_slices+1:ind_max+1])/2:
         im_seg.data[:, :, ind_max] = 0
-        logger.warning('Found isolated voxels on slice {}, Removing them'.format(ind_min))
+        logger.warning(f'Found isolated voxels on slice {ind_min}, Removing them')
     return im_seg
 
 

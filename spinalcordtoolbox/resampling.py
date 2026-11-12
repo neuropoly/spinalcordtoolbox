@@ -103,7 +103,7 @@ def resample_nib(image, new_size=None, new_size_type=None, image_dest=None, inte
         # Generate 3d affine transformation: R
         affine = img.affine[:4, :4]
         affine[3, :] = np.array([0, 0, 0, 1])  # satisfy to nifti convention. Otherwise it grabs the temporal
-        logger.debug('Affine matrix: \n' + str(affine))
+        logger.debug(f'Affine matrix: \n{affine}')
         R = np.eye(4)
         for i in range(3):
             try:

@@ -92,6 +92,7 @@ def test_sct_detect_pmj(t2_image, t2_seg_image, tmp_path):
         dataset='dat',
         subject='sub',
         process='sct_detect_pmj',
+        contrast='t2',
     )
 
     # check that some files exist
@@ -110,6 +111,7 @@ def test_propseg(t2_image, t2_seg_image, tmp_path):
         dataset='dat',
         subject='sub',
         process='sct_propseg',
+        contrast='t2',
     )
 
     # check that some files exist
