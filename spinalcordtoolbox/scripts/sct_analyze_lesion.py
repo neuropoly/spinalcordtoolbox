@@ -1312,6 +1312,16 @@ class AnalyzeLesion:
         self.measure_pd['label'] = labels
         printv(f'Lesion count = {self.lesion_count}', self.verbose, 'info')
 
+        # Lesion(s) found and slice provided --> inform the user about how the slice is used
+        if self.lesion_count > 0 and self.nli_slice is not None:
+            if self.fname_sc is None:
+                printv('WARNING: `-slice` was provided, but the spinal cord segmentation (`-s` option) was not. '
+                       'The `-slice` option will be ignored.', self.verbose, 'warning')
+            else:
+                printv(f'WARNING: Lesion(s) found in the input image, but `-slice` was also provided. The provided '
+                       f'slice ({self.nli_slice}) will be used to determine the midsagittal slice instead of the '
+                       f'lesion center of mass.', self.verbose, 'warning')
+
         # Exit the script if no lesion is found, unless NLI slice is provided
         if self.lesion_count == 0:
             # No NLI slice provided
