@@ -144,9 +144,15 @@ You can replace "``rootlets``" with any of the task names in the table below to 
    * - |rootlets| ``rootlets``
      - |spine| ``spine``
      - |canal| ``canal``
+   * - |brachial_plexus| ``brachial_plexus``
+     -
+     -
 
 .. |canal| image:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/sct_deepseg/canal.png
    :target: deepseg/canal.html
+
+.. |brachial_plexus| image:: https://raw.githubusercontent.com/spinalcordtoolbox/doc-figures/master/sct_deepseg/brachial-plexus.png
+   :target: deepseg/brachial_plexus.html
 
 
 Retired models
@@ -214,3 +220,4 @@ If you absolutely require these models, you can downgrade to version of SCT list
    deepseg/canal
    deepseg/sc_canal_t2
    deepseg/spine
+   deepseg/brachial_plexus
