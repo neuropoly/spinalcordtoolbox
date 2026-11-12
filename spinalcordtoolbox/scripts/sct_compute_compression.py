@@ -296,8 +296,6 @@ def average_hc(ref_folder, metric, list_HC):
     """
     # Create empty dict to put dataframe of each healthy control
     d = {}
-    # Iterator to count number of healthy subjects
-    i = 0
     # Loop through .csv files of healthy controls
     for file in os.listdir(ref_folder):
         if 'PAM50.csv' in file:
@@ -306,28 +304,21 @@ def average_hc(ref_folder, metric, list_HC):
                 # Check if subject is in list to include
                 if subject in list_HC:
                     d[file] = pd.read_csv(os.path.join(ref_folder, file)).astype({metric: float})
-                    i = i+1
             else:
                 d[file] = pd.read_csv(os.path.join(ref_folder, file)).astype({metric: float})
-                i = i+1
     first_key = next(iter(d))
     # Create an empty dataframe with same columns
     df = pd.DataFrame(columns=d[first_key].columns)
     df['VertLevel'] = d[first_key]['VertLevel']
     df['Slice (I->S)'] = d[first_key]['Slice (I->S)']
-    # Loop through all HC
-    for key, values in d.items():
-        for column in d[key].columns:
-            if 'MEAN' in column:
-                if df[column].isnull().values.all():
-                    df[column] = d[key][column]
-                else:
-                    # Sum all columns that have MEAN key
-                    df[column] = df[column] + d[key][column].tolist()
-    # Divide by number of HC
-    for column in df.columns:
-        if 'MEAN' in column:
-            df[column] = df[column]/i
+    # Average each metric per row, skipping NaN values
+    for column_name in d[first_key].columns:
+        if 'MEAN' in column_name:
+            # Construct an NxM pandas dataframe with N metric rows and M HC columns
+            metric_values_df = pd.concat([values[column_name] for values in d.values()], axis=1)
+            # Calculate each row's average. pandas skips NaN values by default, which addresses
+            # https://github.com/spinalcordtoolbox/spinalcordtoolbox/pull/5246#discussion_r3545926552
+            df[column_name] = metric_values_df.mean(axis=1)
     return df
 
 
