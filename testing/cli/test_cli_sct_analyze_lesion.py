@@ -561,3 +561,22 @@ def test_sct_analyze_lesion_different_dimensions_of_lesion_and_cord(tmp_path, tm
 
     # Check that the appropriate warning message is in the output
     assert "ERROR: Lesion and spinal cord images must have the same dimensions" in capfd.readouterr().out
+
+
+@pytest.mark.sct_testing
+def test_sct_analyze_lesion_lesion_found_and_slice(tmp_path, tmp_path_qc, capfd):
+    """
+    Test that the script exits when a lesion is found in the input image and `-slice` is also provided.
+    """
+    with pytest.raises(SystemExit) as e:
+        sct_analyze_lesion.main(['-m', sct_test_path("t2", "t2_fake_lesion_lesion_seg.nii.gz"),
+                                 '-s', sct_test_path("t2", "t2_fake_lesion_sc_seg.nii.gz"),
+                                 '-slice', '20',
+                                 '-ofolder', str(tmp_path),
+                                 '-qc', str(tmp_path_qc)])
+
+    # Check that the process exited with exit code 1
+    assert e.value.code == 1
+
+    # Check that the appropriate error message is in the output
+    assert "The `-slice` option can only be used when no lesion is found" in capfd.readouterr().out

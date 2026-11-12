@@ -101,8 +101,9 @@ def get_parser():
     optional.add_argument(
         '-slice',
         help=textwrap.dedent("""
-            Axial slice number (in the S-I axis), e.g., corresponding to the Neurological Level of Injury (NLI). If provided, this slice will be used to determine the midsagittal slice instead of the automatically computed midsagittal slice based on the lesion center of mass.
+            Axial slice number (in the S-I axis), e.g., corresponding to the Neurological Level of Injury (NLI).
             This is useful when no lesion is apparent in the image but you still need to quantify tissue bridges. In that case, the midsagittal spinal cord A-P diameter measured at this slice is used as a proxy for the tissue bridges (requires `-s`).
+            Note: This option can only be used when no lesion is present in the input mask (`-m`).
             Note: The slice number should be in the same orientation as the input image.
         """),  # noqa: E501 (line too long)
         metavar=Metavar.int,
@@ -1312,15 +1313,11 @@ class AnalyzeLesion:
         self.measure_pd['label'] = labels
         printv(f'Lesion count = {self.lesion_count}', self.verbose, 'info')
 
-        # Lesion(s) found and slice provided --> inform the user about how the slice is used
+        # Lesion(s) found and slice provided --> exit; `-slice` is only allowed when no lesion is found, to avoid
+        # measuring tissue bridges at a slice that does not correspond to the minimally spared tissue
         if self.lesion_count > 0 and self.nli_slice is not None:
-            if self.fname_sc is None:
-                printv('WARNING: `-slice` was provided, but the spinal cord segmentation (`-s` option) was not. '
-                       'The `-slice` option will be ignored.', self.verbose, 'warning')
-            else:
-                printv(f'WARNING: Lesion(s) found in the input image, but `-slice` was also provided. The provided '
-                       f'slice ({self.nli_slice}) will be used to determine the midsagittal slice instead of the '
-                       f'lesion center of mass.', self.verbose, 'warning')
+            printv('ERROR: Lesion(s) found in the input image, but `-slice` was also provided. The `-slice` option '
+                   'can only be used when no lesion is found in the input image.', self.verbose, 'error')  # exit 1
 
         # Exit the script if no lesion is found, unless NLI slice is provided
         if self.lesion_count == 0:
