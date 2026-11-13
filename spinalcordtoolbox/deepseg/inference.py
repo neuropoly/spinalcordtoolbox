@@ -29,7 +29,7 @@ from spinalcordtoolbox.deepseg_.postprocessing import keep_largest_object, fill_
 import spinalcordtoolbox.deepseg.models as ds_models
 import spinalcordtoolbox.deepseg.monai as ds_monai
 import spinalcordtoolbox.deepseg.nnunet as ds_nnunet
-import spinalcordtoolbox.sc_crop as sc_crop
+import spinalcordtoolbox.deepseg.crop as sc_crop
 
 from spinalcordtoolbox.utils.sys import LazyLoader, stylize
 
