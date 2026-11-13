@@ -1173,9 +1173,9 @@ class AnalyzeLesion:
             self._measure_volume(im_lesion_data_cur, p_lst, label_idx)
 
         im_lesion_data_largest_lesion = None
-        # Only get the largest lesion if we're using automatic detection (no NLI slice provided)
-        # and we have at least one lesion
-        if self.nli_slice is None and self.lesion_count > 0:
+        # Only get the largest lesion if we have at least one lesion
+        # (`-slice` is not allowed together with lesions, see `label_lesion()`)
+        if self.lesion_count > 0:
             # Get the index of the largest lesion
             largest_lesion_idx = self.measure_pd.loc[pd.to_numeric(self.measure_pd['volume [mm3]']).idxmax()]['label']
             printv(f'Largest lesion index: {largest_lesion_idx}', self.verbose, 'info')
