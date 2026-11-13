@@ -1124,9 +1124,8 @@ class AnalyzeLesion:
             - `self.interpolated_midsagittal_slice_RPI`: float, interpolated midsagittal slice
             - `self.interpolation_slices_RPI`: list, two sagittal slices used for interpolation
 
-        If a user-provided NLI (Neurological Level of Injury) slice is available (-slice option),
-        it will be used instead of the automatically computed midsagittal slice based on the lesion
-        center of mass.
+        If no lesion is found and a slice is provided (-slice), the midsagittal slice is
+        computed from the spinal cord center of mass at that slice.
 
         Steps (when NLI slice is NOT provided):
             1. Find lesion center of mass in superior-inferior axis (z direction). For example, 211.
