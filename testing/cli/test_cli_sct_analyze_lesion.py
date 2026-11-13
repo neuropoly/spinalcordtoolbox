@@ -386,7 +386,8 @@ def test_sct_analyze_lesion_no_lesion_found(tmp_path, tmp_path_qc, capfd):
 
 
 @pytest.mark.sct_testing
-def test_sct_analyze_lesion_no_lesion_found_nli(tmp_path, tmp_path_qc, capfd):
+@pytest.mark.parametrize("slice_arg", ["-slice", "-nli-slice"])  # `-nli-slice` is a hidden alias (SCT 7.3)
+def test_sct_analyze_lesion_no_lesion_found_nli(slice_arg, tmp_path, tmp_path_qc, capfd):
     """
     Test that the script computes the spinal cord A-P spinal cord diameter if no lesion is found and NLI slice is
     provided.
@@ -404,7 +405,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli(tmp_path, tmp_path_qc, capfd):
     # Run the analysis on the empty lesion file
     sct_analyze_lesion.main(['-m', path_empty_lesion,
                              '-s', path_seg,
-                             '-slice', '10',
+                             slice_arg, '10',
                              '-ofolder', str(tmp_path),
                              '-qc', str(tmp_path_qc)])
 
