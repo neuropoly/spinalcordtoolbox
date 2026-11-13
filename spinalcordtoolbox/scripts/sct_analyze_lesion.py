@@ -5,6 +5,7 @@
 # Copyright (c) 2014 Polytechnique Montreal <www.neuro.polymtl.ca>
 # License: see the file LICENSE
 
+import argparse
 import os
 import sys
 import pickle
@@ -109,6 +110,13 @@ def get_parser():
         metavar=Metavar.int,
         type=int,
         default=None
+    )
+    optional.add_argument(
+        # Hidden alias kept only for backwards compatibility with SCT 7.3
+        '-nli-slice',
+        dest='slice',
+        type=int,
+        help=argparse.SUPPRESS,
     )
     optional.add_argument(
         '-qc',
