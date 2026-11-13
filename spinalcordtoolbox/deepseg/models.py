@@ -776,7 +776,11 @@ def load_crop_metadata(name_model, path_model):
             f"key(s) {missing_keys} -- all of {list(CROP_PAD_KEYS)} must be specified "
             f"explicitly, so cropping doesn't silently depend on sc_crop's own defaults."
         )
-    return {key: crop_metadata[key] for key in CROP_PAD_KEYS}
+    crop_kwargs = {key: crop_metadata[key] for key in CROP_PAD_KEYS}
+    # Optional: structure to crop around ("sc" or "canal"), sc_crop.detect() defaults to "sc" if not given
+    if 'structure' in crop_metadata:
+        crop_kwargs['structure'] = crop_metadata['structure']
+    return crop_kwargs
 
 
 def is_list_of_urls(url_field):
