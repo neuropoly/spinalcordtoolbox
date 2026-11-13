@@ -386,7 +386,8 @@ def test_sct_analyze_lesion_no_lesion_found(tmp_path, tmp_path_qc, capfd):
 
 
 @pytest.mark.sct_testing
-def test_sct_analyze_lesion_no_lesion_found_nli(tmp_path, tmp_path_qc, capfd):
+@pytest.mark.parametrize("slice_arg", ["-slice", "-nli-slice"])  # `-nli-slice` is a hidden alias (SCT 7.3)
+def test_sct_analyze_lesion_no_lesion_found_nli(slice_arg, tmp_path, tmp_path_qc, capfd):
     """
     Test that the script computes the spinal cord A-P spinal cord diameter if no lesion is found and NLI slice is
     provided.
@@ -404,7 +405,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli(tmp_path, tmp_path_qc, capfd):
     # Run the analysis on the empty lesion file
     sct_analyze_lesion.main(['-m', path_empty_lesion,
                              '-s', path_seg,
-                             '-nli-slice', '10',
+                             slice_arg, '10',
                              '-ofolder', str(tmp_path),
                              '-qc', str(tmp_path_qc)])
 
@@ -447,7 +448,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_no_cord(tmp_path, tmp_path_qc, c
     # Catch the sys.exit() call using pytest
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
-                                 '-nli-slice', '20',
+                                 '-slice', '20',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -455,7 +456,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_no_cord(tmp_path, tmp_path_qc, c
     assert e.value.code == 1
 
     # Check that the appropriate warning message is in the output
-    assert "The spinal cord segmentation (`-s` option) is required if `-nli-slice` is provided" in capfd.readouterr().out
+    assert "The spinal cord segmentation (`-s` option) is required if `-slice` is provided" in capfd.readouterr().out
 
 
 @pytest.mark.sct_testing
@@ -485,7 +486,7 @@ def test_sct_analyze_lesion_no_lesion_found_nli_outside_cord(tmp_path, tmp_path_
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg_pad,
-                                 '-nli-slice', '0',  # NLI slice outside the spinal cord segmentation (the padded slice)
+                                 '-slice', '0',  # NLI slice outside the spinal cord segmentation (the padded slice)
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -516,7 +517,7 @@ def test_sct_analyze_lesion_nli_outside_image(tmp_path, tmp_path_qc, capfd):
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg,
-                                 '-nli-slice', '100',
+                                 '-slice', '100',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -552,7 +553,7 @@ def test_sct_analyze_lesion_different_dimensions_of_lesion_and_cord(tmp_path, tm
     with pytest.raises(SystemExit) as e:
         sct_analyze_lesion.main(['-m', path_empty_lesion,
                                  '-s', path_seg_pad,
-                                 '-nli-slice', '20',
+                                 '-slice', '20',
                                  '-ofolder', str(tmp_path),
                                  '-qc', str(tmp_path_qc)])
 
@@ -561,3 +562,22 @@ def test_sct_analyze_lesion_different_dimensions_of_lesion_and_cord(tmp_path, tm
 
     # Check that the appropriate warning message is in the output
     assert "ERROR: Lesion and spinal cord images must have the same dimensions" in capfd.readouterr().out
+
+
+@pytest.mark.sct_testing
+def test_sct_analyze_lesion_lesion_found_and_slice(tmp_path, tmp_path_qc, capfd):
+    """
+    Test that the script exits when a lesion is found in the input image and `-slice` is also provided.
+    """
+    with pytest.raises(SystemExit) as e:
+        sct_analyze_lesion.main(['-m', sct_test_path("t2", "t2_fake_lesion_lesion_seg.nii.gz"),
+                                 '-s', sct_test_path("t2", "t2_fake_lesion_sc_seg.nii.gz"),
+                                 '-slice', '20',
+                                 '-ofolder', str(tmp_path),
+                                 '-qc', str(tmp_path_qc)])
+
+    # Check that the process exited with exit code 1
+    assert e.value.code == 1
+
+    # Check that the appropriate error message is in the output
+    assert "The `-slice` option can only be used when no lesion is found" in capfd.readouterr().out

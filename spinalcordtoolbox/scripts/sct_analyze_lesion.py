@@ -5,6 +5,7 @@
 # Copyright (c) 2014 Polytechnique Montreal <www.neuro.polymtl.ca>
 # License: see the file LICENSE
 
+import argparse
 import os
 import sys
 import pickle
@@ -99,18 +100,23 @@ def get_parser():
         action=ActionCreateFolder,
         default='.')
     optional.add_argument(
-        '-nli-slice',
+        '-slice',
         help=textwrap.dedent("""
-            Slice number (in the S-I axis) corresponding to the Neurological Level of Injury (NLI).
-            If provided, this slice will be used to measure the midsagittal A-P diameter instead of the
-            automatically computed midsagittal slice based on the lesion center of mass.
-            The measured A-P diameter is then used as a proxy for the tissue bridges.
-            This is useful when no lesion is found in the image but you still need to quantify tissue bridges.
+            Axial slice number (in the S-I axis), e.g., corresponding to the Neurological Level of Injury (NLI).
+            This is useful when no lesion is apparent in the image but you still need to quantify tissue bridges. In that case, the midsagittal spinal cord A-P diameter measured at this slice is used as a proxy for the tissue bridges (requires `-s`).
+            Note: This option can only be used when no lesion is present in the input mask (`-m`).
             Note: The slice number should be in the same orientation as the input image.
         """),  # noqa: E501 (line too long)
         metavar=Metavar.int,
         type=int,
         default=None
+    )
+    optional.add_argument(
+        # Hidden alias kept only for backwards compatibility with SCT 7.3
+        '-nli-slice',
+        dest='slice',
+        type=int,
+        help=argparse.SUPPRESS,
     )
     optional.add_argument(
         '-qc',
@@ -1118,8 +1124,8 @@ class AnalyzeLesion:
             - `self.interpolated_midsagittal_slice_RPI`: float, interpolated midsagittal slice
             - `self.interpolation_slices_RPI`: list, two sagittal slices used for interpolation
 
-        If a user-provided NLI slice is available (-nli-slice option), it will be used instead of the
-        automatically computed midsagittal slice based on the lesion center of mass.
+        If no lesion is found and a slice is provided (-slice), the midsagittal slice is
+        computed from the spinal cord center of mass at that slice.
 
         Steps (when NLI slice is NOT provided):
             1. Find lesion center of mass in superior-inferior axis (z direction). For example, 211.
@@ -1167,9 +1173,9 @@ class AnalyzeLesion:
             self._measure_volume(im_lesion_data_cur, p_lst, label_idx)
 
         im_lesion_data_largest_lesion = None
-        # Only get the largest lesion if we're using automatic detection (no NLI slice provided)
-        # and we have at least one lesion
-        if self.nli_slice is None and self.lesion_count > 0:
+        # Only get the largest lesion if we have at least one lesion
+        # (`-slice` is not allowed together with lesions, see `label_lesion()`)
+        if self.lesion_count > 0:
             # Get the index of the largest lesion
             largest_lesion_idx = self.measure_pd.loc[pd.to_numeric(self.measure_pd['volume [mm3]']).idxmax()]['label']
             printv(f'Largest lesion index: {largest_lesion_idx}', self.verbose, 'info')
@@ -1238,7 +1244,7 @@ class AnalyzeLesion:
         :param data2: 2D numpy array (slice 2) or single int64 (tissue bridge for slice 2)
         :return: 2D numpy array (interpolated slice) or single float64 (interpolated tissue bridge)
         """
-        # This case should realistically be handled earlier in the script by falling back to `-nli-slice`.
+        # This case should realistically be handled earlier in the script by falling back to `-slice`.
         # If a double-nan input slips through, it's a bug, so throw an error.
         if np.any(np.isnan(data1) & np.isnan(data2)):
             raise ValueError("Two 'NaN' values passed. Cannot interpolate between two 'NaN' values.")
@@ -1314,18 +1320,24 @@ class AnalyzeLesion:
         self.measure_pd['label'] = labels
         printv(f'Lesion count = {self.lesion_count}', self.verbose, 'info')
 
+        # Lesion(s) found and slice provided --> exit; `-slice` is only allowed when no lesion is found, to avoid
+        # measuring tissue bridges at a slice that does not correspond to the minimally spared tissue
+        if self.lesion_count > 0 and self.nli_slice is not None:
+            printv('ERROR: Lesion(s) found in the input image, but `-slice` was also provided. The `-slice` option '
+                   'can only be used when no lesion is found in the input image.', self.verbose, 'error')  # exit 1
+
         # Exit the script if no lesion is found, unless NLI slice is provided
         if self.lesion_count == 0:
             # No NLI slice provided
             if self.nli_slice is None:
                 printv('ERROR: No lesion found in the input image. You can provide a slice corresponding to '
-                       'the Neurological Level of Injury (NLI) using the `-nli-slice` option to compute the spinal '
+                       'the Neurological Level of Injury (NLI) using the `-slice` option to compute the spinal '
                        'cord A-P diameter at that slice. The measured A-P diameter will be used as a proxy for the '
                        'tissue bridges.', self.verbose, 'error')  # exit code 1
 
             # No spinal cord segmentation provided
             if self.fname_sc is None:   # we need the spinal cord segmentation to compute the spinal cord A-P diameter
-                printv('ERROR: The spinal cord segmentation (`-s` option) is required if `-nli-slice` is '
+                printv('ERROR: The spinal cord segmentation (`-s` option) is required if `-slice` is '
                        'provided.', self.verbose, 'error')  # exit code 1
 
             # Check that the NLI slice (provided by the user) is in the range of the S-I dimension
@@ -1460,7 +1472,7 @@ def main(argv: Sequence[str]):
                                path_template=path_template,
                                path_ofolder=path_results,
                                perslice=arguments.perslice,
-                               nli_slice=arguments.nli_slice,
+                               nli_slice=arguments.slice,
                                verbose=verbose)
 
     # run the analyze
