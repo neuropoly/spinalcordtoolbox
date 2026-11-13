@@ -250,6 +250,36 @@ MODELS = {
         "thr": None,
         "default": False,
      },
+    "model1_seg_brachialplexus-drg_human_stir": {
+         "url": {
+            "model1_fold0": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold0_r20260723.zip"],
+            "model1_fold1": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold1_r20260723.zip"],
+            "model1_fold2": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold2_r20260723.zip"],
+            "model1_fold3": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold3_r20260723.zip"],
+            "model1_fold4": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset201_DRGPlexusCoarse_fold4_r20260723.zip"],
+         },
+         "description": "Segmentation of the brachial plexus and dorsal root ganglia on human STIR MRI",
+         "contrasts": ["STIR"],
+         "framework": "nnunetv2",
+         "thr": None,  # unsure
+         "default": False,
+         "cropped_image": False,
+     },
+    "model2_seg_brachialplexus-drg_human_stir": {
+        "url": {
+            "model2_fold0": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold0_r20260723.zip"],
+            "model2_fold1": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold1_r20260723.zip"],
+            "model2_fold2": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold2_r20260723.zip"],
+            "model2_fold3": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold3_r20260723.zip"],
+            "model2_fold4": ["https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir/releases/download/r20260723/Dataset202_DRGPlexusFine_fold4_r20260723.zip"]
+        },
+        "description": "Segmentation of the brachial plexus and dorsal root ganglia on human STIR MRI",
+        "contrasts": ["STIR"],
+        "framework": "nnunetv2",
+        "thr": None,  # unsure
+        "default": False,
+        "cropped_image": False,
+    },
 }
 
 
@@ -628,6 +658,22 @@ TASKS = {
          'group': 'gray_matter',
          'priority': 1  # Push gray matter to the top of its eponymous category
          },
+    'brachial_plexus':
+        {'description': 'Segmentation of brachial plexus nerve roots and dorsal root ganglia on STIR MRI',
+         'long_description': 'This segmentation model for the bilateral C5-C8 brachial plexus nerve roots and dorsal '
+                             'root ganglia (DRG) uses a two-stage cascade of 3D U-Nets (ResEncUNet-M), trained with the '
+                             'nnUNetV2 framework. Stage 1 produces a coarse 3-class segmentation (background, DRG, '
+                             'plexus) that localizes the target region. Stage 2 takes the image and the Stage 1 '
+                             'prediction as input, and outputs a single segmentation image containing 16 classes: '
+                             'DRG C5-C8 right (1-4), DRG C5-C8 left (5-8), plexus C5-C8 right (9-12), and plexus C5-C8 '
+                             'left (13-16). Left/right merged structures are split in post-processing. Training data '
+                             'consisted of approximately 400 coronal T2 SPACE STIR scans from three sites (Oxford, '
+                             'Brighton, Stanford), acquired on Siemens and GE scanners. Five-fold cross-validation gave '
+                             'a median test Dice of 0.90.',
+         'url': 'https://github.com/jfundaun/model_seg_brachialplexus-drg_human_stir',
+         'models': ['model1_seg_brachialplexus-drg_human_stir', 'model2_seg_brachialplexus-drg_human_stir'],
+         'citation': None
+         },
 }
 
 
@@ -760,6 +806,7 @@ def install_model(name_model, custom_url=None):
     """
     logger.info(f"\nINSTALLING MODEL: {name_model}")
     url_field = default_url = MODELS[name_model]['url']
+    framework = MODELS[name_model]["framework"]
     if custom_url is not None:
         if not isinstance(custom_url, list):
             raise ValueError(f"Expected a list of model URLs for custom_url, got: {custom_url}")
@@ -801,9 +848,8 @@ def install_model(name_model, custom_url=None):
         else:
             urls_used = {}
             for i, (seed_name, model_urls) in enumerate(url_field.items()):
-                # For the ms_lesion model, we need to regroup the folds together
-                # For lesion_ms, we can extract all the folds to the same `nnunetTrainer` directory
-                if name_model == "model_seg_ms_lesion":
+                # For nnunetv2 multifold models, we need to regroup the folds together into one `nnUNetTrainer` directory
+                if framework == "nnunetv2":
                     target_directory = folder(name_model)
                     dirs_to_preserve = ("nnUNetTrainer",)
                 # For other multi-seed models, create subfolders for each seed
